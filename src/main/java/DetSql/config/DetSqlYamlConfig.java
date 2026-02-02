@@ -26,7 +26,10 @@ public class DetSqlYamlConfig {
     
     // 参数黑名单
     private List<String> paramslist = new ArrayList<>();
-    
+
+    // 参数白名单
+    private List<String> whiteparamslist = new ArrayList<>();
+
     // 路径黑名单（多行文本）
     private String blackpath = "";
     
@@ -123,6 +126,14 @@ public class DetSqlYamlConfig {
 
     public void setParamslist(List<String> paramslist) {
         this.paramslist = paramslist;
+    }
+
+    public List<String> getWhiteparamslist() {
+        return whiteparamslist;
+    }
+
+    public void setWhiteparamslist(List<String> whiteparamslist) {
+        this.whiteparamslist = whiteparamslist;
     }
 
     public String getBlackpath() {
@@ -291,6 +302,7 @@ public class DetSqlYamlConfig {
         prop.setProperty("suffixlist", joinList(suffixlist));
         prop.setProperty("errpoclist", joinList(errpoclist));
         prop.setProperty("paramslist", joinList(paramslist));
+        prop.setProperty("whiteparamslist", joinList(whiteparamslist));
 
         // 多行文本字段直接使用（Properties 会处理换行符）
         prop.setProperty("blackpath", blackpath != null ? blackpath : "");

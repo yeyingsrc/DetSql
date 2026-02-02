@@ -42,6 +42,10 @@ public class MyFilterRequest {
     // 因为过滤逻辑在这个类中
     public static volatile Set<String> blackParamsSet = new HashSet<>();
 
+    // 参数白名单 - 与参数黑名单形成"交集"过滤机制
+    // 如果配置了白名单，则只测试白名单中的参数（且不在黑名单中的）
+    public static volatile Set<String> whiteParamsSet = new HashSet<>();
+
     // 已过滤域名的跟踪集合 - 避免重复输出相同域名的过滤日志
     // 使用ConcurrentHashMap实现线程安全的Set
     private static final java.util.Set<String> filteredHostsLogged = java.util.concurrent.ConcurrentHashMap.newKeySet();
@@ -141,15 +145,41 @@ public class MyFilterRequest {
         return !unLegalExtensionSet.contains(fileExtension);
     }
 
-    // 过滤六，GET或POST参数不能为空+PUT（并且不能全部被黑名单过滤）
+    // 过滤六，GET或POST参数不能为空+PUT（并且不能全部被黑名单/白名单过滤）
 
+    /**
+     * 检查参数列表中是否存在有效参数
+     *
+     * 过滤逻辑（与域名白名单/黑名单相同的"交集"机制）：
+     * 1. 如果配置了参数白名单，参数必须在白名单中
+     * 2. 参数不能在黑名单中
+     * 3. 只有同时满足以上条件的参数才被视为有效参数
+     *
+     * @param params 参数列表
+     * @return true 如果存在至少一个有效参数，false 否则
+     */
     private static boolean hasEffectiveParams(java.util.List<ParsedHttpParameter> params) {
         if (params == null || params.isEmpty())
             return false;
-        // 如果全部参数名都在黑名单内，则视为无效（直接跳过测试）
+
+        // 遍历所有参数，检查是否存在有效参数
         for (ParsedHttpParameter p : params) {
-            if (!MyFilterRequest.blackParamsSet.contains(p.name())) {
-                return true; // 至少存在一个未被黑名单过滤的参数
+            String paramName = p.name();
+
+            // 检查是否在黑名单中（黑名单优先级最高）
+            if (blackParamsSet.contains(paramName)) {
+                continue; // 在黑名单中，跳过此参数
+            }
+
+            // 检查白名单：如果配置了白名单，参数必须在白名单中
+            if (!whiteParamsSet.isEmpty()) {
+                if (whiteParamsSet.contains(paramName)) {
+                    return true; // 在白名单中且不在黑名单中，有效参数
+                }
+                // 不在白名单中，跳过此参数
+            } else {
+                // 未配置白名单，只要不在黑名单中就是有效参数
+                return true;
             }
         }
         return false;
@@ -513,6 +543,8 @@ public class MyFilterRequest {
         filteredPathsLogged.clear();
         System.out.println("[DetSQL 配置] 域名黑名单已更新: " + blackListSet);
         System.out.println("[DetSQL 配置] 路径黑名单已更新: " + blackPathSet);
+        System.out.println("[DetSQL 配置] 参数黑名单已更新: " + blackParamsSet);
+        System.out.println("[DetSQL 配置] 参数白名单已更新: " + whiteParamsSet);
     }
 
     /**

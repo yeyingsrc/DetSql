@@ -177,6 +177,7 @@ public class DetSqlUI implements LanguageChangeListener {
         yamlConfig.setBlacklist(new ArrayList<>(MyFilterRequest.blackListSet));
         yamlConfig.setSuffixlist(new ArrayList<>(MyFilterRequest.unLegalExtensionSet));
         yamlConfig.setParamslist(new ArrayList<>(MyFilterRequest.blackParamsSet));
+        yamlConfig.setWhiteparamslist(new ArrayList<>(MyFilterRequest.whiteParamsSet));
 
         // 路径黑名单(多行文本)
         yamlConfig.setBlackpath(String.join("\n", MyFilterRequest.blackPathSet));
@@ -811,6 +812,7 @@ public class DetSqlUI implements LanguageChangeListener {
         MyFilterRequest.whiteListSet = new HashSet<>(yamlConfig.getWhitelist());
         MyFilterRequest.blackListSet = new HashSet<>(yamlConfig.getBlacklist());
         MyFilterRequest.blackParamsSet = new HashSet<>(yamlConfig.getParamslist());
+        MyFilterRequest.whiteParamsSet = new HashSet<>(yamlConfig.getWhiteparamslist());
 
         if (yamlConfig.getSuffixlist().isEmpty()) {
             MyFilterRequest.unLegalExtensionSet = new HashSet<>(DefaultConfig.DEFAULT_SUFFIX_SET);
@@ -833,6 +835,8 @@ public class DetSqlUI implements LanguageChangeListener {
                 configPanel.errorPocTextField.setText(String.join("|", yamlConfig.getErrpoclist()));
             if (configPanel.blackParamsField != null)
                 configPanel.blackParamsField.setText(String.join("|", yamlConfig.getParamslist()));
+            if (configPanel.whiteParamsField != null)
+                configPanel.whiteParamsField.setText(String.join("|", yamlConfig.getWhiteparamslist()));
             if (configPanel.timeTextField != null)
                 configPanel.timeTextField.setText(String.valueOf(yamlConfig.getDelaytime()));
             if (configPanel.staticTimeTextField != null)

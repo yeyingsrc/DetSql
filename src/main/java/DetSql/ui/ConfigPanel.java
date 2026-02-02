@@ -31,6 +31,7 @@ public class ConfigPanel extends JPanel {
     public JTextField suffixTextField;
     public JTextField errorPocTextField;
     public JTextField blackParamsField;
+    public JTextField whiteParamsField;
     public JTextField configTextField;
     public JTextField timeTextField;
     public JTextField staticTimeTextField;
@@ -97,6 +98,7 @@ public class ConfigPanel extends JPanel {
         JLabel suffixLabel = new JLabel();
         JLabel errorPocLabel = new JLabel();
         JLabel blackParamsLabel = new JLabel();
+        JLabel whiteParamsLabel = new JLabel();
         JLabel configLabel = new JLabel();
         JLabel blackPathLabel = new JLabel();
         JLabel diyLabel = new JLabel();
@@ -119,7 +121,7 @@ public class ConfigPanel extends JPanel {
 
         // 设置 UI 各部分
         setupDomainFilters(container, springLayout, topicLabel, blackLabel, suffixLabel,
-                errorPocLabel, blackParamsLabel, st, st2);
+                errorPocLabel, blackParamsLabel, whiteParamsLabel, st, st2);
         setupSqlmapConfig(container, springLayout, sqlmapPathLabel, sqlmapCommandLabel, blackParamsLabel, st, st2);
         setupCheckboxes(container, springLayout, conBt, st, st2);
         setupConfigPath(container, springLayout, configLabel, loadBt, saveBt, blackLabel, st, st3, st4);
@@ -136,7 +138,7 @@ public class ConfigPanel extends JPanel {
         loadBt.addActionListener(e -> handleLoadButton());
         saveBt.addActionListener(e -> handleSaveButton());
         languageComboBox.addActionListener(e -> handleLanguageChange(topicLabel, blackLabel, suffixLabel,
-                errorPocLabel, blackParamsLabel, diyLabel,
+                errorPocLabel, blackParamsLabel, whiteParamsLabel, diyLabel,
                 resRegexLabel, timeLabel, staticTimeLabel,
                 startTimeLabel, blackPathLabel, conBt,
                 loadBt, saveBt, languageLabel, configLabel,
@@ -144,16 +146,27 @@ public class ConfigPanel extends JPanel {
 
         // 更新所有标签
         updateLanguageLabels(topicLabel, blackLabel, suffixLabel, errorPocLabel, blackParamsLabel,
-                diyLabel, resRegexLabel, timeLabel, staticTimeLabel, startTimeLabel,
+                whiteParamsLabel, diyLabel, resRegexLabel, timeLabel, staticTimeLabel, startTimeLabel,
                 blackPathLabel, conBt, loadBt, saveBt, languageLabel, configLabel,
                 sqlmapPathLabel, sqlmapCommandLabel);
 
-        add(new JScrollPane(container), BorderLayout.CENTER);
+        // 设置容器的底部约束，确保 SpringLayout 能正确计算首选大小
+        springLayout.putConstraint(SpringLayout.SOUTH, container, PADDING_LARGE, SpringLayout.SOUTH, languageComboBox);
+
+        // 设置容器的首选大小，确保滚动面板正常工作
+        ((JPanel) container).setPreferredSize(new java.awt.Dimension(800, 1200));
+
+        // 创建滚动面板并设置滚动策略
+        JScrollPane scrollPane = new JScrollPane(container);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        add(scrollPane, BorderLayout.CENTER);
     }
 
     private void setupDomainFilters(Container container, SpringLayout layout,
             JLabel topicLabel, JLabel blackLabel, JLabel suffixLabel,
-            JLabel errorPocLabel, JLabel blackParamsLabel,
+            JLabel errorPocLabel, JLabel blackParamsLabel, JLabel whiteParamsLabel,
             Spring st, Spring st2) {
         // 创建文本框
         textField = new JTextField(TEXTFIELD_COLUMNS);
@@ -162,6 +175,7 @@ public class ConfigPanel extends JPanel {
         suffixTextField.setText(DefaultConfig.DEFAULT_SUFFIX_LIST);
         errorPocTextField = new JTextField(TEXTFIELD_COLUMNS);
         blackParamsField = new JTextField(TEXTFIELD_COLUMNS);
+        whiteParamsField = new JTextField(TEXTFIELD_COLUMNS);
 
         // 域名白名单
         container.add(topicLabel);
@@ -203,10 +217,20 @@ public class ConfigPanel extends JPanel {
         layout.putConstraint(SpringLayout.NORTH, errorPocTextField, 0, SpringLayout.NORTH, errorPocLabel);
         layout.putConstraint(SpringLayout.EAST, errorPocTextField, Spring.minus(st), SpringLayout.EAST, container);
 
-        // 参数黑名单
+        // 参数白名单（放在参数黑名单上方）
+        container.add(whiteParamsLabel);
+        layout.putConstraint(SpringLayout.WEST, whiteParamsLabel, 0, SpringLayout.WEST, errorPocLabel);
+        layout.putConstraint(SpringLayout.NORTH, whiteParamsLabel, st, SpringLayout.SOUTH, errorPocLabel);
+
+        container.add(whiteParamsField);
+        layout.putConstraint(SpringLayout.WEST, whiteParamsField, 0, SpringLayout.WEST, textField);
+        layout.putConstraint(SpringLayout.NORTH, whiteParamsField, 0, SpringLayout.NORTH, whiteParamsLabel);
+        layout.putConstraint(SpringLayout.EAST, whiteParamsField, Spring.minus(st), SpringLayout.EAST, container);
+
+        // 参数黑名单（放在参数白名单下方）
         container.add(blackParamsLabel);
-        layout.putConstraint(SpringLayout.WEST, blackParamsLabel, 0, SpringLayout.WEST, errorPocLabel);
-        layout.putConstraint(SpringLayout.NORTH, blackParamsLabel, st, SpringLayout.SOUTH, errorPocLabel);
+        layout.putConstraint(SpringLayout.WEST, blackParamsLabel, 0, SpringLayout.WEST, whiteParamsLabel);
+        layout.putConstraint(SpringLayout.NORTH, blackParamsLabel, st, SpringLayout.SOUTH, whiteParamsLabel);
 
         container.add(blackParamsField);
         layout.putConstraint(SpringLayout.WEST, blackParamsField, 0, SpringLayout.WEST, textField);
@@ -408,6 +432,8 @@ public class ConfigPanel extends JPanel {
         // 创建语言下拉框
         languageComboBox = new JComboBox<>(LANGUAGES);
         languageComboBox.setSelectedIndex(languageIndex);
+        languageComboBox.setMaximumSize(new Dimension(100, 25));
+        languageComboBox.setPreferredSize(new Dimension(100, 25));
 
         container.add(languageLabel);
         layout.putConstraint(SpringLayout.NORTH, languageLabel, st, SpringLayout.SOUTH, diyScrollPane);
@@ -452,6 +478,7 @@ public class ConfigPanel extends JPanel {
         // 创建 SQLMap 命令文本框
         sqlmapCommandTextField = new JTextField(TEXTFIELD_COLUMNS + 20);
         sqlmapCommandTextField.setText(SqlmapConfig.getDefaultSqlmapOptions());
+        sqlmapCommandTextField.setMaximumSize(new Dimension(sqlmapCommandTextField.getPreferredSize().width, 25));
 
         // SQLMap 命令标签 - 位于 SQLMap 路径下方
         container.add(sqlmapCommandLabel);
@@ -493,7 +520,7 @@ public class ConfigPanel extends JPanel {
      * 更新所有 UI 组件标签为当前语言
      */
     private void updateLanguageLabels(JLabel topicLabel, JLabel blackLabel, JLabel suffixLabel,
-            JLabel errorPocLabel, JLabel blackParams, JLabel diyLabel,
+            JLabel errorPocLabel, JLabel blackParams, JLabel whiteParams, JLabel diyLabel,
             JLabel resRegexLabel, JLabel timeLabel, JLabel staticTimeLabel,
             JLabel startTimeLabel, JLabel blackPathLabel, JButton conBt,
             JButton loadBt, JButton saveBt, JLabel languageLabel,
@@ -503,6 +530,7 @@ public class ConfigPanel extends JPanel {
         suffixLabel.setText(messages.getString("Prohibitsuffixing"));
         errorPocLabel.setText(messages.getString("ErrorTypePOCing"));
         blackParams.setText(messages.getString("Parameterblacklisting"));
+        whiteParams.setText(messages.getString("Parameterwhitelisting"));
         switchCheck.setText(messages.getString("checkbox.switch"));
         cookieCheck.setText(messages.getString("checkbox.Testcookies"));
         vulnCheck.setText(messages.getString("checkbox.Acceptrepeater"));
@@ -564,6 +592,17 @@ public class ConfigPanel extends JPanel {
             MyFilterRequest.blackParamsSet.clear();
             MyFilterRequest.resetDiagnosticFlags();
             api.logging().logToOutput("[DetSQL 配置更新] 参数黑名单已清空");
+        }
+
+        String whiteParamsList = whiteParamsField.getText();
+        if (!whiteParamsList.isBlank()) {
+            MyFilterRequest.whiteParamsSet = parseDelimitedString(whiteParamsList);
+            MyFilterRequest.resetDiagnosticFlags();
+            api.logging().logToOutput("[DetSQL 配置更新] 参数白名单已应用: " + MyFilterRequest.whiteParamsSet);
+        } else {
+            MyFilterRequest.whiteParamsSet.clear();
+            MyFilterRequest.resetDiagnosticFlags();
+            api.logging().logToOutput("[DetSQL 配置更新] 参数白名单已清空");
         }
 
         String unLegalExtension = suffixTextField.getText();
@@ -655,6 +694,7 @@ public class ConfigPanel extends JPanel {
             int whitelistCount = MyFilterRequest.whiteListSet.size();
             int blackPathCount = MyFilterRequest.blackPathSet.size();
             int blackParamsCount = MyFilterRequest.blackParamsSet.size();
+            int whiteParamsCount = MyFilterRequest.whiteParamsSet.size();
             int suffixCount = MyFilterRequest.unLegalExtensionSet.size();
 
             StringBuilder summary = new StringBuilder();
@@ -664,6 +704,7 @@ public class ConfigPanel extends JPanel {
             summary.append(String.format("域名黑名单: %d 个  %s\n", blacklistCount, blacklistCount > 0 ? "✓" : ""));
             summary.append(String.format("路径黑名单: %d 个  %s\n", blackPathCount, blackPathCount > 0 ? "✓" : ""));
             summary.append(String.format("参数黑名单: %d 个  %s\n", blackParamsCount, blackParamsCount > 0 ? "✓" : ""));
+            summary.append(String.format("参数白名单: %d 个  %s\n", whiteParamsCount, whiteParamsCount > 0 ? "✓" : ""));
             summary.append(String.format("禁止后缀: %d 个\n", suffixCount));
             summary.append("═══════════════════════════════\n");
             summary.append("\n💡 提示: 如需永久保存，请点击\"保存\"按钮");
@@ -697,12 +738,14 @@ public class ConfigPanel extends JPanel {
             api.logging().logToOutput("[INFO] 准备保存配置到文件...");
             api.logging().logToOutput("[INFO] 当前运行时配置状态:");
             api.logging().logToOutput("  ├─ 域名白名单: " + MyFilterRequest.whiteListSet.size() + " 个");
-            api.logging().logToOutput("  ├─ 域名黑名单: " + MyFilterRequest.blackListSet.size() + " 个" + 
+            api.logging().logToOutput("  ├─ 域名黑名单: " + MyFilterRequest.blackListSet.size() + " 个" +
                     (MyFilterRequest.blackListSet.isEmpty() ? "" : " " + MyFilterRequest.blackListSet));
             api.logging().logToOutput("  ├─ 路径黑名单: " + MyFilterRequest.blackPathSet.size() + " 个" +
                     (MyFilterRequest.blackPathSet.isEmpty() ? "" : " " + MyFilterRequest.blackPathSet));
             api.logging().logToOutput("  ├─ 参数黑名单: " + MyFilterRequest.blackParamsSet.size() + " 个" +
                     (MyFilterRequest.blackParamsSet.isEmpty() ? "" : " " + MyFilterRequest.blackParamsSet));
+            api.logging().logToOutput("  ├─ 参数白名单: " + MyFilterRequest.whiteParamsSet.size() + " 个" +
+                    (MyFilterRequest.whiteParamsSet.isEmpty() ? "" : " " + MyFilterRequest.whiteParamsSet));
             api.logging().logToOutput("  └─ 禁止后缀: " + MyFilterRequest.unLegalExtensionSet.size() + " 个");
 
             // 直接使用 DetSqlUI 的 buildYamlConfig 方法构建配置对象，确保与卸载时保存的逻辑完全一致
@@ -722,6 +765,7 @@ public class ConfigPanel extends JPanel {
             int whitelistCount = MyFilterRequest.whiteListSet.size();
             int blackPathCount = MyFilterRequest.blackPathSet.size();
             int blackParamsCount = MyFilterRequest.blackParamsSet.size();
+            int whiteParamsCount = MyFilterRequest.whiteParamsSet.size();
             int suffixCount = MyFilterRequest.unLegalExtensionSet.size();
 
             StringBuilder summary = new StringBuilder();
@@ -731,11 +775,12 @@ public class ConfigPanel extends JPanel {
             summary.append(String.format("域名黑名单: %d 个  %s\n", blacklistCount, blacklistCount > 0 ? "✓" : ""));
             summary.append(String.format("路径黑名单: %d 个  %s\n", blackPathCount, blackPathCount > 0 ? "✓" : ""));
             summary.append(String.format("参数黑名单: %d 个  %s\n", blackParamsCount, blackParamsCount > 0 ? "✓" : ""));
+            summary.append(String.format("参数白名单: %d 个  %s\n", whiteParamsCount, whiteParamsCount > 0 ? "✓" : ""));
             summary.append(String.format("禁止后缀: %d 个\n", suffixCount));
             summary.append("═══════════════════════════════\n");
 
             // 添加空配置警告
-            if (blacklistCount == 0 && whitelistCount == 0 && blackPathCount == 0 && blackParamsCount == 0) {
+            if (blacklistCount == 0 && whitelistCount == 0 && blackPathCount == 0 && blackParamsCount == 0 && whiteParamsCount == 0) {
                 summary.append("\n⚠️ 警告: 所有过滤规则均为空\n");
                 summary.append("这意味着所有请求都会被检测。\n");
                 summary.append("如果这不是您的预期，请检查输入框内容。\n");
@@ -756,6 +801,10 @@ public class ConfigPanel extends JPanel {
             if (blackParamsCount > 0 && blackParamsCount <= 5) {
                 summary.append("\n参数黑名单: ");
                 summary.append(String.join(", ", MyFilterRequest.blackParamsSet));
+            }
+            if (whiteParamsCount > 0 && whiteParamsCount <= 5) {
+                summary.append("\n参数白名单: ");
+                summary.append(String.join(", ", MyFilterRequest.whiteParamsSet));
             }
 
             // 使用更醒目的成功图标
@@ -847,7 +896,7 @@ public class ConfigPanel extends JPanel {
      * 使用全局 LanguageManager 通知所有监听器
      */
     private void handleLanguageChange(JLabel topicLabel, JLabel blackLabel, JLabel suffixLabel,
-            JLabel errorPocLabel, JLabel blackParamsLabel, JLabel diyLabel,
+            JLabel errorPocLabel, JLabel blackParamsLabel, JLabel whiteParamsLabel, JLabel diyLabel,
             JLabel resRegexLabel, JLabel timeLabel, JLabel staticTimeLabel,
             JLabel startTimeLabel, JLabel blackPathLabel, JButton conBt,
             JButton loadBt, JButton saveBt, JLabel languageLabel,
@@ -864,7 +913,7 @@ public class ConfigPanel extends JPanel {
 
         // 更新 ConfigPanel 自身的 UI 组件
         updateLanguageLabels(topicLabel, blackLabel, suffixLabel, errorPocLabel, blackParamsLabel,
-                diyLabel, resRegexLabel, timeLabel, staticTimeLabel, startTimeLabel,
+                whiteParamsLabel, diyLabel, resRegexLabel, timeLabel, staticTimeLabel, startTimeLabel,
                 blackPathLabel, conBt, loadBt, saveBt, languageLabel, configLabel,
                 sqlmapPathLabel, sqlmapCommandLabel);
     }
@@ -920,6 +969,7 @@ public class ConfigPanel extends JPanel {
         MyFilterRequest.whiteListSet = parseSetProperty(prop, "whitelist", new HashSet<>());
         MyFilterRequest.blackListSet = parseSetProperty(prop, "blacklist", new HashSet<>());
         MyFilterRequest.blackParamsSet = parseSetProperty(prop, "paramslist", new HashSet<>());
+        MyFilterRequest.whiteParamsSet = parseSetProperty(prop, "whiteparamslist", new HashSet<>());
 
         // 重置诊断标志
         MyFilterRequest.resetDiagnosticFlags();
@@ -929,6 +979,9 @@ public class ConfigPanel extends JPanel {
             api.logging().logToOutput("[DetSQL 配置加载] 域名黑名单: " + MyFilterRequest.blackListSet);
         } else {
             api.logging().logToOutput("[DetSQL 配置加载] 域名黑名单为空");
+        }
+        if (!MyFilterRequest.whiteParamsSet.isEmpty()) {
+            api.logging().logToOutput("[DetSQL 配置加载] 参数白名单: " + MyFilterRequest.whiteParamsSet);
         }
 
         String suffixProp = prop.getProperty("suffixlist", "").trim();
@@ -950,6 +1003,8 @@ public class ConfigPanel extends JPanel {
                 errorPocTextField.setText(prop.getProperty("errpoclist", ""));
             if (blackParamsField != null)
                 blackParamsField.setText(prop.getProperty("paramslist", ""));
+            if (whiteParamsField != null)
+                whiteParamsField.setText(prop.getProperty("whiteparamslist", ""));
             if (timeTextField != null)
                 timeTextField.setText(prop.getProperty("delaytime", ""));
             if (staticTimeTextField != null)
