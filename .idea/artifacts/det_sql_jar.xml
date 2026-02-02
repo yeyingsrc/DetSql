@@ -1,0 +1,13 @@
+<component name="ArtifactManager">
+  <artifact type="jar" name="det-sql:jar">
+    <output-path>$PROJECT_DIR$/out/artifacts/det_sql_jar</output-path>
+    <root id="archive" name="det-sql.jar">
+      <element id="module-output" name="det-sql" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/commons/commons-lang3/3.18.0/commons-lang3-3.18.0.jar" path-in-jar="/" />
+      <element id="library" level="project" name="Maven: com.google.errorprone:error_prone_annotations:2.27.0" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/com/google/code/gson/gson/2.11.0/gson-2.11.0.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/yaml/snakeyaml/2.3/snakeyaml-2.3.jar" path-in-jar="/" />
+      <element id="extracted-dir" path="$MAVEN_REPOSITORY$/org/apache/commons/commons-text/1.13.0/commons-text-1.13.0.jar" path-in-jar="/" />
+    </root>
+  </artifact>
+</component>

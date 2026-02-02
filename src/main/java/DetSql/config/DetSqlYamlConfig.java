@@ -74,9 +74,15 @@ public class DetSqlYamlConfig {
     
     // 测试自定义 Payload
     private boolean diycheck = false;
-    
+
     // 语言索引（0=中文，1=英文）
     private int languageindex = 0;
+
+    // SQLMap 路径
+    private String sqlmappath = "sqlmap";
+
+    // SQLMap 命令参数
+    private String sqlmapcommand = "-o --random-agent --time-sec=3 --risk=3 --level=5 --current-db --tamper=space2comment --batch";
 
     // Getters and Setters
     public List<String> getWhitelist() {
@@ -255,6 +261,22 @@ public class DetSqlYamlConfig {
         this.languageindex = languageindex;
     }
 
+    public String getSqlmappath() {
+        return sqlmappath;
+    }
+
+    public void setSqlmappath(String sqlmappath) {
+        this.sqlmappath = sqlmappath;
+    }
+
+    public String getSqlmapcommand() {
+        return sqlmapcommand;
+    }
+
+    public void setSqlmapcommand(String sqlmapcommand) {
+        this.sqlmapcommand = sqlmapcommand;
+    }
+
     /**
      * 转换为 Properties 格式（兼容 UI 的旧配置逻辑）
      *
@@ -294,6 +316,10 @@ public class DetSqlYamlConfig {
 
         // 语言索引
         prop.setProperty("languageindex", String.valueOf(languageindex));
+
+        // SQLMap 配置
+        prop.setProperty("sqlmappath", sqlmappath != null ? sqlmappath : "sqlmap");
+        prop.setProperty("sqlmapcommand", sqlmapcommand != null ? sqlmapcommand : "");
 
         return prop;
     }

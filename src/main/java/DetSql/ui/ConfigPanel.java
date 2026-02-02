@@ -4,6 +4,7 @@ import DetSql.config.ConfigManager;
 import DetSql.config.DefaultConfig;
 import DetSql.config.DetSqlConfig;
 import DetSql.config.DetSqlYamlConfig;
+import DetSql.config.SqlmapConfig;
 import DetSql.logging.DetSqlLogger;
 import DetSql.logging.LogLevel;
 import DetSql.ui.Messages;
@@ -35,6 +36,9 @@ public class ConfigPanel extends JPanel {
     public JTextField staticTimeTextField;
     public JTextField startTimeTextField;
     public JTextField endTimeTextField;
+    public JTextField sqlmapPathTextField;
+    public JButton sqlmapBrowseButton;
+    public JTextField sqlmapCommandTextField;
 
     public JTextArea diyTextArea;
     public JTextArea regexTextArea;
@@ -101,6 +105,8 @@ public class ConfigPanel extends JPanel {
         JLabel staticTimeLabel = new JLabel();
         JLabel startTimeLabel = new JLabel();
         JLabel languageLabel = new JLabel();
+        JLabel sqlmapPathLabel = new JLabel();
+        JLabel sqlmapCommandLabel = new JLabel();
         JButton conBt = new JButton();
         JButton loadBt = new JButton();
         JButton saveBt = new JButton();
@@ -114,6 +120,7 @@ public class ConfigPanel extends JPanel {
         // 设置 UI 各部分
         setupDomainFilters(container, springLayout, topicLabel, blackLabel, suffixLabel,
                 errorPocLabel, blackParamsLabel, st, st2);
+        setupSqlmapConfig(container, springLayout, sqlmapPathLabel, sqlmapCommandLabel, blackParamsLabel, st, st2);
         setupCheckboxes(container, springLayout, conBt, st, st2);
         setupConfigPath(container, springLayout, configLabel, loadBt, saveBt, blackLabel, st, st3, st4);
         JScrollPane blackPathScrollPane = setupBlackPath(container, springLayout, blackPathLabel,
@@ -132,12 +139,14 @@ public class ConfigPanel extends JPanel {
                 errorPocLabel, blackParamsLabel, diyLabel,
                 resRegexLabel, timeLabel, staticTimeLabel,
                 startTimeLabel, blackPathLabel, conBt,
-                loadBt, saveBt, languageLabel, configLabel));
+                loadBt, saveBt, languageLabel, configLabel,
+                sqlmapPathLabel, sqlmapCommandLabel));
 
         // 更新所有标签
         updateLanguageLabels(topicLabel, blackLabel, suffixLabel, errorPocLabel, blackParamsLabel,
                 diyLabel, resRegexLabel, timeLabel, staticTimeLabel, startTimeLabel,
-                blackPathLabel, conBt, loadBt, saveBt, languageLabel, configLabel);
+                blackPathLabel, conBt, loadBt, saveBt, languageLabel, configLabel,
+                sqlmapPathLabel, sqlmapCommandLabel);
 
         add(new JScrollPane(container), BorderLayout.CENTER);
     }
@@ -218,10 +227,10 @@ public class ConfigPanel extends JPanel {
         boolCheck = new JCheckBox();
         diyCheck = new JCheckBox();
 
-        // 水平排列复选框
+        // 水平排列复选框 - 位于 SQLMap 命令下方
         container.add(switchCheck);
-        layout.putConstraint(SpringLayout.WEST, switchCheck, 0, SpringLayout.WEST, blackParamsField);
-        layout.putConstraint(SpringLayout.NORTH, switchCheck, st, SpringLayout.SOUTH, blackParamsField);
+        layout.putConstraint(SpringLayout.WEST, switchCheck, 0, SpringLayout.WEST, textField);
+        layout.putConstraint(SpringLayout.NORTH, switchCheck, st, SpringLayout.SOUTH, sqlmapCommandTextField);
 
         container.add(cookieCheck);
         layout.putConstraint(SpringLayout.WEST, cookieCheck, st2, SpringLayout.EAST, switchCheck);
@@ -410,6 +419,77 @@ public class ConfigPanel extends JPanel {
     }
 
     /**
+     * 设置 SQLMap 配置（路径和命令参数）
+     * 位于参数黑名单下方
+     */
+    private void setupSqlmapConfig(Container container, SpringLayout layout,
+            JLabel sqlmapPathLabel, JLabel sqlmapCommandLabel,
+            JLabel blackParamsLabel, Spring st, Spring st2) {
+        // 创建 SQLMap 路径文本框和浏览按钮
+        sqlmapPathTextField = new JTextField(TEXTFIELD_COLUMNS);
+        sqlmapPathTextField.setText(SqlmapConfig.getSqlmapPath());
+
+        sqlmapBrowseButton = new JButton(messages.getString("button.browse"));
+        sqlmapBrowseButton.addActionListener(e -> handleSqlmapBrowse());
+
+        // SQLMap 路径标签 - 位于参数黑名单下方
+        container.add(sqlmapPathLabel);
+        layout.putConstraint(SpringLayout.NORTH, sqlmapPathLabel, st, SpringLayout.SOUTH, blackParamsLabel);
+        layout.putConstraint(SpringLayout.WEST, sqlmapPathLabel, 0, SpringLayout.WEST, blackParamsLabel);
+
+        // SQLMap 路径文本框
+        container.add(sqlmapPathTextField);
+        layout.putConstraint(SpringLayout.WEST, sqlmapPathTextField, 0, SpringLayout.WEST, textField);
+        layout.putConstraint(SpringLayout.NORTH, sqlmapPathTextField, 0, SpringLayout.NORTH, sqlmapPathLabel);
+        layout.putConstraint(SpringLayout.EAST, sqlmapPathTextField, -80, SpringLayout.EAST, container);
+
+        // 浏览按钮
+        container.add(sqlmapBrowseButton);
+        layout.putConstraint(SpringLayout.WEST, sqlmapBrowseButton, st, SpringLayout.EAST, sqlmapPathTextField);
+        layout.putConstraint(SpringLayout.NORTH, sqlmapBrowseButton, 0, SpringLayout.NORTH, sqlmapPathTextField);
+        layout.putConstraint(SpringLayout.EAST, sqlmapBrowseButton, Spring.minus(st), SpringLayout.EAST, container);
+
+        // 创建 SQLMap 命令文本框
+        sqlmapCommandTextField = new JTextField(TEXTFIELD_COLUMNS + 20);
+        sqlmapCommandTextField.setText(SqlmapConfig.getDefaultSqlmapOptions());
+
+        // SQLMap 命令标签 - 位于 SQLMap 路径下方
+        container.add(sqlmapCommandLabel);
+        layout.putConstraint(SpringLayout.NORTH, sqlmapCommandLabel, st, SpringLayout.SOUTH, sqlmapPathLabel);
+        layout.putConstraint(SpringLayout.WEST, sqlmapCommandLabel, 0, SpringLayout.WEST, blackParamsLabel);
+
+        // SQLMap 命令文本框
+        container.add(sqlmapCommandTextField);
+        layout.putConstraint(SpringLayout.WEST, sqlmapCommandTextField, 0, SpringLayout.WEST, textField);
+        layout.putConstraint(SpringLayout.NORTH, sqlmapCommandTextField, 0, SpringLayout.NORTH, sqlmapCommandLabel);
+        layout.putConstraint(SpringLayout.EAST, sqlmapCommandTextField, Spring.minus(st), SpringLayout.EAST, container);
+    }
+
+    /**
+     * 处理 SQLMap 路径浏览按钮点击事件
+     */
+    private void handleSqlmapBrowse() {
+        JFileChooser fileChooser = new JFileChooser();
+        fileChooser.setDialogTitle(messages.getString("sqlmap.select_path"));
+        fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+
+        // 设置初始目录
+        String currentPath = sqlmapPathTextField.getText();
+        if (!currentPath.isBlank()) {
+            java.io.File currentFile = new java.io.File(currentPath);
+            if (currentFile.exists()) {
+                fileChooser.setCurrentDirectory(currentFile.getParentFile());
+            }
+        }
+
+        int result = fileChooser.showOpenDialog(this);
+        if (result == JFileChooser.APPROVE_OPTION) {
+            java.io.File selectedFile = fileChooser.getSelectedFile();
+            sqlmapPathTextField.setText(selectedFile.getAbsolutePath());
+        }
+    }
+
+    /**
      * 更新所有 UI 组件标签为当前语言
      */
     private void updateLanguageLabels(JLabel topicLabel, JLabel blackLabel, JLabel suffixLabel,
@@ -417,7 +497,7 @@ public class ConfigPanel extends JPanel {
             JLabel resRegexLabel, JLabel timeLabel, JLabel staticTimeLabel,
             JLabel startTimeLabel, JLabel blackPathLabel, JButton conBt,
             JButton loadBt, JButton saveBt, JLabel languageLabel,
-            JLabel configLabel) {
+            JLabel configLabel, JLabel sqlmapPathLabel, JLabel sqlmapCommandLabel) {
         topicLabel.setText(messages.getString("Domainwhitelisting"));
         blackLabel.setText(messages.getString("Domainblacklisting"));
         suffixLabel.setText(messages.getString("Prohibitsuffixing"));
@@ -443,6 +523,11 @@ public class ConfigPanel extends JPanel {
         saveBt.setText(messages.getString("button.save"));
         languageLabel.setText(messages.getString("languageing"));
         configLabel.setText(messages.getString("configuredirectorying"));
+        sqlmapPathLabel.setText(messages.getString("sqlmap.path"));
+        sqlmapCommandLabel.setText(messages.getString("sqlmap.command"));
+        if (sqlmapBrowseButton != null) {
+            sqlmapBrowseButton.setText(messages.getString("button.browse"));
+        }
     }
 
     /**
@@ -531,6 +616,26 @@ public class ConfigPanel extends JPanel {
             MyFilterRequest.blackPathSet.clear();
             MyFilterRequest.resetDiagnosticFlags();
             api.logging().logToOutput("[INFO] ℹ 路径黑名单已清空（所有路径将被检测）");
+        }
+
+        // 应用 SQLMap 路径配置
+        String sqlmapPath = sqlmapPathTextField.getText();
+        if (!sqlmapPath.isBlank()) {
+            SqlmapConfig.setSqlmapPath(sqlmapPath.trim());
+            api.logging().logToOutput("[DetSQL 配置更新] SQLMap 路径已应用: " + sqlmapPath.trim());
+        } else {
+            SqlmapConfig.setSqlmapPath("sqlmap");
+            api.logging().logToOutput("[DetSQL 配置更新] SQLMap 路径已重置为默认值");
+        }
+
+        // 应用 SQLMap 命令配置
+        String sqlmapCommand = sqlmapCommandTextField.getText();
+        if (!sqlmapCommand.isBlank()) {
+            SqlmapConfig.setSqlmapOptionsCommand(sqlmapCommand.trim());
+            api.logging().logToOutput("[DetSQL 配置更新] SQLMap 命令已应用: " + sqlmapCommand.trim());
+        } else {
+            SqlmapConfig.setSqlmapOptionsCommand(SqlmapConfig.getDefaultSqlmapOptions());
+            api.logging().logToOutput("[DetSQL 配置更新] SQLMap 命令已重置为默认值");
         }
 
         logger.info("配置已应用到运行时");
@@ -746,7 +851,7 @@ public class ConfigPanel extends JPanel {
             JLabel resRegexLabel, JLabel timeLabel, JLabel staticTimeLabel,
             JLabel startTimeLabel, JLabel blackPathLabel, JButton conBt,
             JButton loadBt, JButton saveBt, JLabel languageLabel,
-            JLabel configLabel) {
+            JLabel configLabel, JLabel sqlmapPathLabel, JLabel sqlmapCommandLabel) {
         int newLanguageIndex = languageComboBox.getSelectedIndex();
 
         // 使用全局 LanguageManager 通知所有监听器
@@ -760,7 +865,8 @@ public class ConfigPanel extends JPanel {
         // 更新 ConfigPanel 自身的 UI 组件
         updateLanguageLabels(topicLabel, blackLabel, suffixLabel, errorPocLabel, blackParamsLabel,
                 diyLabel, resRegexLabel, timeLabel, staticTimeLabel, startTimeLabel,
-                blackPathLabel, conBt, loadBt, saveBt, languageLabel, configLabel);
+                blackPathLabel, conBt, loadBt, saveBt, languageLabel, configLabel,
+                sqlmapPathLabel, sqlmapCommandLabel);
     }
 
     /**
@@ -925,6 +1031,20 @@ public class ConfigPanel extends JPanel {
         if (languageIndexStr != null) {
             languageIndex = parseIntWithDefault(languageIndexStr, 0);
         }
+
+        // 应用 SQLMap 配置
+        String sqlmapPath = prop.getProperty("sqlmappath", "sqlmap");
+        SqlmapConfig.setSqlmapPath(sqlmapPath);
+        String sqlmapCommand = prop.getProperty("sqlmapcommand", SqlmapConfig.getDefaultSqlmapOptions());
+        SqlmapConfig.setSqlmapOptionsCommand(sqlmapCommand);
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            if (sqlmapPathTextField != null) {
+                sqlmapPathTextField.setText(sqlmapPath);
+            }
+            if (sqlmapCommandTextField != null) {
+                sqlmapCommandTextField.setText(sqlmapCommand);
+            }
+        });
     }
 
     /**
@@ -954,6 +1074,8 @@ public class ConfigPanel extends JPanel {
         prop.setProperty("diyregex", regexTextArea.getText());
         prop.setProperty("blackpath", blackPathTextArea.getText());
         prop.setProperty("languageindex", String.valueOf(languageIndex));
+        prop.setProperty("sqlmappath", sqlmapPathTextField.getText());
+        prop.setProperty("sqlmapcommand", sqlmapCommandTextField.getText());
         return prop;
     }
 
