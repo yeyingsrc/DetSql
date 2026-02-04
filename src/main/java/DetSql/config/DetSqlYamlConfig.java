@@ -81,11 +81,14 @@ public class DetSqlYamlConfig {
     // 语言索引（0=中文，1=英文）
     private int languageindex = 0;
 
-    // SQLMap 路径
-    private String sqlmappath = "sqlmap";
+    // Python 解释器名称
+    private String pythonname = "python";
 
-    // SQLMap 命令参数
-    private String sqlmapcommand = "-o --random-agent --time-sec=3 --risk=3 --level=5 --current-db --tamper=space2comment --batch";
+    // SqlMap 路径
+    private String sqlmappath = "sqlmap.py";
+
+    // SqlMap 命令参数
+    private String sqlmapoptions = "-o --random-agent --time-sec=3 --risk=3 --level=5 --current-db --tamper=space2comment --batch";
 
     // Getters and Setters
     public List<String> getWhitelist() {
@@ -272,6 +275,14 @@ public class DetSqlYamlConfig {
         this.languageindex = languageindex;
     }
 
+    public String getPythonname() {
+        return pythonname;
+    }
+
+    public void setPythonname(String pythonname) {
+        this.pythonname = pythonname;
+    }
+
     public String getSqlmappath() {
         return sqlmappath;
     }
@@ -280,12 +291,12 @@ public class DetSqlYamlConfig {
         this.sqlmappath = sqlmappath;
     }
 
-    public String getSqlmapcommand() {
-        return sqlmapcommand;
+    public String getSqlmapoptions() {
+        return sqlmapoptions;
     }
 
-    public void setSqlmapcommand(String sqlmapcommand) {
-        this.sqlmapcommand = sqlmapcommand;
+    public void setSqlmapoptions(String sqlmapoptions) {
+        this.sqlmapoptions = sqlmapoptions;
     }
 
     /**
@@ -329,9 +340,10 @@ public class DetSqlYamlConfig {
         // 语言索引
         prop.setProperty("languageindex", String.valueOf(languageindex));
 
-        // SQLMap 配置
-        prop.setProperty("sqlmappath", sqlmappath != null ? sqlmappath : "sqlmap");
-        prop.setProperty("sqlmapcommand", sqlmapcommand != null ? sqlmapcommand : "");
+        // SqlMap 配置
+        prop.setProperty("pythonname", pythonname != null ? pythonname : "python");
+        prop.setProperty("sqlmappath", sqlmappath != null ? sqlmappath : "sqlmap.py");
+        prop.setProperty("sqlmapoptions", sqlmapoptions != null ? sqlmapoptions : "");
 
         return prop;
     }

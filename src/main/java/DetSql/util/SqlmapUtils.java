@@ -14,8 +14,8 @@ import java.util.Properties;
 import java.util.function.Consumer;
 
 /**
- * SQLMap 工具类
- * 提供跨平台的 SQLMap 调用支持
+ * SqlMap 工具类
+ * 提供跨平台的 SqlMap 调用支持
  */
 public class SqlmapUtils {
     public static final int OS_WIN = 1;
@@ -184,7 +184,7 @@ public class SqlmapUtils {
 
         switch (osType) {
             case OS_WIN:
-                String batFilePath = makeBatFile("sqlmap4burp.bat", command);
+                String batFilePath = makeBatFile("sqlmap_scan.bat", command);
                 if (batFilePath != null) {
                     cmds.add("cmd.exe");
                     cmds.add("/c");
@@ -200,7 +200,7 @@ public class SqlmapUtils {
                 break;
 
             case OS_LINUX:
-                String shellFilePath = makeShellScript("sqlmap4burp.sh", command);
+                String shellFilePath = makeShellScript("sqlmap_scan.sh", command);
                 if (shellFilePath != null) {
                     // 尝试使用常见的终端模拟器
                     cmds.add("/bin/bash");

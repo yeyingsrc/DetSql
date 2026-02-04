@@ -249,7 +249,7 @@ public class DetSql implements BurpExtension, ContextMenuItemsProvider {
             }
         });
 
-        // SQLMap 菜单项事件处理
+        // SqlMap 菜单项事件处理
         menuItemSqlmap.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
@@ -258,7 +258,7 @@ public class DetSql implements BurpExtension, ContextMenuItemsProvider {
                     api.logging().logToError("未选择任何请求");
                     JOptionPane.showMessageDialog(null,
                             Messages.getString("sqlmap.no_request"),
-                            "SQLMap", JOptionPane.WARNING_MESSAGE);
+                            "SqlMap", JOptionPane.WARNING_MESSAGE);
                     return;
                 }
 
@@ -267,41 +267,41 @@ public class DetSql implements BurpExtension, ContextMenuItemsProvider {
                     byte[] requestBytes = selectHttpRequestResponse.request().toByteArray().getBytes();
                     String tempFilePath = SqlmapUtils.saveRequestToTempFile(requestBytes, "sqlmap_request.txt");
 
-                    api.logging().logToOutput("[SQLMap] 请求已保存到: " + tempFilePath);
+                    api.logging().logToOutput("[SqlMap] 请求已保存到: " + tempFilePath);
 
-                    // 构建 SQLMap 命令
+                    // 构建 SqlMap 命令
                     String command = SqlmapConfig.buildFullCommand();
-                    api.logging().logToOutput("[SQLMap] 执行命令: " + command);
+                    api.logging().logToOutput("[SqlMap] 执行命令: " + command);
 
                     // 根据操作系统类型执行命令
                     int osType = SqlmapUtils.getOSType();
                     java.util.List<String> cmds = SqlmapUtils.buildPlatformCommands(command);
 
                     if (cmds.isEmpty()) {
-                        api.logging().logToError("[SQLMap] 无法构建命令");
+                        api.logging().logToError("[SqlMap] 无法构建命令");
                         JOptionPane.showMessageDialog(null,
                                 Messages.getString("sqlmap.command_failed"),
-                                "SQLMap", JOptionPane.ERROR_MESSAGE);
+                                "SqlMap", JOptionPane.ERROR_MESSAGE);
                         return;
                     }
 
                     // 对于 Linux，如果终端启动失败，复制命令到剪贴板
                     if (osType == SqlmapUtils.OS_LINUX) {
                         SqlmapUtils.setSysClipboardText(command);
-                        api.logging().logToOutput("[SQLMap] 命令已复制到剪贴板");
+                        api.logging().logToOutput("[SqlMap] 命令已复制到剪贴板");
                     }
 
                     // 执行命令
                     ProcessBuilder processBuilder = new ProcessBuilder(cmds);
                     processBuilder.start();
 
-                    api.logging().logToOutput("[SQLMap] 已启动 SQLMap");
+                    api.logging().logToOutput("[SqlMap] 已启动 SqlMap");
 
                 } catch (Exception ex) {
-                    api.logging().logToError("[SQLMap] 执行失败: " + ex.getMessage());
+                    api.logging().logToError("[SqlMap] 执行失败: " + ex.getMessage());
                     JOptionPane.showMessageDialog(null,
                             Messages.getString("sqlmap.execution_failed") + ": " + ex.getMessage(),
-                            "SQLMap", JOptionPane.ERROR_MESSAGE);
+                            "SqlMap", JOptionPane.ERROR_MESSAGE);
                 }
             }
         });
