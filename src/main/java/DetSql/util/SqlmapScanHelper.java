@@ -13,8 +13,8 @@ import javax.swing.*;
 import java.util.*;
 
 /**
- * SqlMap 扫描辅助类
- * 负责将指定参数的值替换为 * (SqlMap 注入点标记) 并启动扫描
+ * sqlmap 扫描辅助类
+ * 负责将指定参数的值替换为 * (sqlmap 注入点标记) 并启动扫描
  */
 public class SqlmapScanHelper {
 
@@ -30,7 +30,7 @@ public class SqlmapScanHelper {
     public static void scanParameters(DetSqlLogger logger, HttpRequest request, Set<String> paramNames) {
         if (request == null || paramNames == null || paramNames.isEmpty()) {
             JOptionPane.showMessageDialog(null, Messages.getString("sqlmap.request_or_params_empty"),
-                    "SqlMap", JOptionPane.WARNING_MESSAGE);
+                    "sqlmap", JOptionPane.WARNING_MESSAGE);
             return;
         }
 
@@ -41,12 +41,12 @@ public class SqlmapScanHelper {
             // 获取修改后的请求字节
             byte[] requestBytes = modifiedRequest.toByteArray().getBytes();
 
-            // 启动 SqlMap
-            logger.info("[SqlMap] 开始扫描参数: " + String.join(", ", paramNames));
+            // 启动 sqlmap
+            logger.info("[sqlmap] 开始扫描参数: " + String.join(", ", paramNames));
             SqlmapStarter.start(logger, requestBytes);
 
         } catch (Exception e) {
-            logger.error("[SqlMap] 扫描失败: " + e.getMessage());
+            logger.error("[sqlmap] 扫描失败: " + e.getMessage());
             JOptionPane.showMessageDialog(null,
                     Messages.getString("sqlmap.scan_failed") + ": " + e.getMessage(),
                     Messages.getString("dialog.error"), JOptionPane.ERROR_MESSAGE);
@@ -54,7 +54,7 @@ public class SqlmapScanHelper {
     }
 
     /**
-     * 将指定参数的值替换为 * (SqlMap 注入点标记)
+     * 将指定参数的值替换为 * (sqlmap 注入点标记)
      * 
      * @param request 原始请求
      * @param paramNames 要替换的参数名集合

@@ -84,10 +84,10 @@ public class DetSqlYamlConfig {
     // Python 解释器名称
     private String pythonname = "python";
 
-    // SqlMap 路径
+    // sqlmap 路径
     private String sqlmappath = "sqlmap.py";
 
-    // SqlMap 命令参数
+    // sqlmap 命令参数
     private String sqlmapoptions = "-o --random-agent --time-sec=3 --risk=3 --level=5 --current-db --tamper=space2comment --batch";
 
     // Getters and Setters
@@ -340,7 +340,7 @@ public class DetSqlYamlConfig {
         // 语言索引
         prop.setProperty("languageindex", String.valueOf(languageindex));
 
-        // SqlMap 配置
+        // sqlmap 配置
         prop.setProperty("pythonname", pythonname != null ? pythonname : "python");
         prop.setProperty("sqlmappath", sqlmappath != null ? sqlmappath : "sqlmap.py");
         prop.setProperty("sqlmapoptions", sqlmapoptions != null ? sqlmapoptions : "");

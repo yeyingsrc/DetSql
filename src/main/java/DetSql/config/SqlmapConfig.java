@@ -1,24 +1,24 @@
 package DetSql.config;
 
 /**
- * SqlMap 配置类
- * 管理 SqlMap 的路径、命令参数等配置
+ * sqlmap 配置类
+ * 管理 sqlmap 的路径、命令参数等配置
  */
 public class SqlmapConfig {
     // 默认 Python 解释器名称
     private static String PYTHON_NAME = "python";
 
-    // 默认 SqlMap 路径
+    // 默认 sqlmap 路径
     private static String SQLMAP_PATH = "sqlmap";
 
     // 请求文件路径（临时文件）
     private static String REQUEST_FILE_PATH = "";
 
-    // 默认 SqlMap 命令参数
+    // 默认 sqlmap 命令参数
     private static final String DEFAULT_SQLMAP_OPTIONS =
             "-o --random-agent --time-sec=3 --risk=3 --level=5 --current-db --tamper=space2comment --batch";
 
-    // 当前 SqlMap 命令参数
+    // 当前 sqlmap 命令参数
     private static String SQLMAP_OPTIONS_COMMAND = DEFAULT_SQLMAP_OPTIONS;
 
     // 操作系统类型
@@ -42,14 +42,14 @@ public class SqlmapConfig {
     }
 
     /**
-     * 获取 SqlMap 路径
+     * 获取 sqlmap 路径
      */
     public static String getSqlmapPath() {
         return SQLMAP_PATH;
     }
 
     /**
-     * 设置 SqlMap 路径
+     * 设置 sqlmap 路径
      */
     public static void setSqlmapPath(String sqlmapPath) {
         SQLMAP_PATH = sqlmapPath;
@@ -70,21 +70,21 @@ public class SqlmapConfig {
     }
 
     /**
-     * 获取 SqlMap 命令参数
+     * 获取 sqlmap 命令参数
      */
     public static String getSqlmapOptionsCommand() {
         return SQLMAP_OPTIONS_COMMAND;
     }
 
     /**
-     * 设置 SqlMap 命令参数
+     * 设置 sqlmap 命令参数
      */
     public static void setSqlmapOptionsCommand(String sqlmapOptionsCommand) {
         SQLMAP_OPTIONS_COMMAND = sqlmapOptionsCommand;
     }
 
     /**
-     * 获取默认 SqlMap 命令参数
+     * 获取默认 sqlmap 命令参数
      */
     public static String getDefaultSqlmapOptions() {
         return DEFAULT_SQLMAP_OPTIONS;
@@ -119,8 +119,8 @@ public class SqlmapConfig {
     }
 
     /**
-     * 构建完整的 SqlMap 命令
-     * @return 完整的 SqlMap 命令字符串
+     * 构建完整的 sqlmap 命令
+     * @return 完整的 sqlmap 命令字符串
      */
     public static String buildFullCommand() {
         return String.format("%s \"%s\" -r \"%s\" %s",

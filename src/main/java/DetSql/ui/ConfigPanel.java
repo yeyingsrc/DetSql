@@ -254,7 +254,7 @@ public class ConfigPanel extends JPanel {
         boolCheck = new JCheckBox();
         diyCheck = new JCheckBox();
 
-        // 水平排列复选框 - 位于 SqlMap 命令行下方
+        // 水平排列复选框 - 位于 sqlmap 命令行下方
         container.add(switchCheck);
         layout.putConstraint(SpringLayout.WEST, switchCheck, 0, SpringLayout.WEST, textField);
         layout.putConstraint(SpringLayout.NORTH, switchCheck, st, SpringLayout.SOUTH, sqlmapCommandLineTextField);
@@ -448,7 +448,7 @@ public class ConfigPanel extends JPanel {
     }
 
     /**
-     * 设置 SqlMap 配置（统一的命令行组件）
+     * 设置 sqlmap 配置（统一的命令行组件）
      * 位于参数黑名单下方
      */
     private void setupSqlmapConfig(Container container, SpringLayout layout,
@@ -458,7 +458,7 @@ public class ConfigPanel extends JPanel {
         sqlmapPath = SqlmapConfig.getSqlmapPath();
         sqlmapOptions = SqlmapConfig.getSqlmapOptionsCommand();
 
-        // 创建统一的 SqlMap 命令行文本框
+        // 创建统一的 sqlmap 命令行文本框
         sqlmapCommandLineTextField = new JTextField(TEXTFIELD_COLUMNS + 20);
         updateSqlmapCommandLineTextField();
         sqlmapCommandLineTextField.setMaximumSize(new Dimension(sqlmapCommandLineTextField.getPreferredSize().width, 25));
@@ -467,12 +467,12 @@ public class ConfigPanel extends JPanel {
         sqlmapMoreButton = new JButton(messages.getString("button.more"));
         sqlmapMoreButton.addActionListener(e -> showSqlmapConfigDialog());
 
-        // SqlMap 命令行标签 - 位于参数黑名单下方
+        // sqlmap 命令行标签 - 位于参数黑名单下方
         container.add(sqlmapCommandLineLabel);
         layout.putConstraint(SpringLayout.NORTH, sqlmapCommandLineLabel, st, SpringLayout.SOUTH, blackParamsLabel);
         layout.putConstraint(SpringLayout.WEST, sqlmapCommandLineLabel, 0, SpringLayout.WEST, blackParamsLabel);
 
-        // SqlMap 命令行文本框
+        // sqlmap 命令行文本框
         container.add(sqlmapCommandLineTextField);
         layout.putConstraint(SpringLayout.WEST, sqlmapCommandLineTextField, 0, SpringLayout.WEST, textField);
         layout.putConstraint(SpringLayout.NORTH, sqlmapCommandLineTextField, 0, SpringLayout.NORTH, sqlmapCommandLineLabel);
@@ -525,7 +525,7 @@ public class ConfigPanel extends JPanel {
         pythonHelpLabel.setToolTipText(messages.getString("sqlmap.python_help"));
         mainPanel.add(pythonHelpLabel, gbc);
 
-        // Sqlmap path 行
+        // sqlmap path 行
         gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
         JLabel sqlmapPathLabel = new JLabel(messages.getString("sqlmap.sqlmap_path"));
         mainPanel.add(sqlmapPathLabel, gbc);
@@ -554,7 +554,7 @@ public class ConfigPanel extends JPanel {
         });
         mainPanel.add(browseButton, gbc);
 
-        // Sqlmap option 行
+        // sqlmap option 行
         gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
         JLabel optionLabel = new JLabel(messages.getString("sqlmap.sqlmap_option"));
         mainPanel.add(optionLabel, gbc);
@@ -740,11 +740,11 @@ public class ConfigPanel extends JPanel {
             api.logging().logToOutput("[INFO] ℹ 路径黑名单已清空（所有路径将被检测）");
         }
 
-        // 应用 SqlMap 配置（从成员变量同步到SqlmapConfig）
+        // 应用 sqlmap 配置（从成员变量同步到SqlmapConfig）
         SqlmapConfig.setPythonName(pythonName);
         SqlmapConfig.setSqlmapPath(sqlmapPath);
         SqlmapConfig.setSqlmapOptionsCommand(sqlmapOptions);
-        api.logging().logToOutput("[DetSQL 配置更新] SqlMap 命令行已应用: " + sqlmapCommandLineTextField.getText());
+        api.logging().logToOutput("[DetSQL 配置更新] sqlmap 命令行已应用: " + sqlmapCommandLineTextField.getText());
 
         logger.info("配置已应用到运行时");
     }
@@ -1156,7 +1156,7 @@ public class ConfigPanel extends JPanel {
             languageIndex = parseIntWithDefault(languageIndexStr, 0);
         }
 
-        // 应用 SqlMap 配置
+        // 应用 sqlmap 配置
         String loadedPythonName = prop.getProperty("pythonname", "python");
         String loadedSqlmapPath = prop.getProperty("sqlmappath", "sqlmap.py");
         String loadedSqlmapOptions = prop.getProperty("sqlmapoptions", SqlmapConfig.getDefaultSqlmapOptions());

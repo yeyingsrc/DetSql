@@ -209,7 +209,7 @@ public class DetSqlUI implements LanguageChangeListener {
         // 语言配置
         yamlConfig.setLanguageindex(getLanguageIndex());
 
-        // SqlMap 配置
+        // sqlmap 配置
         yamlConfig.setPythonname(SqlmapConfig.getPythonName());
         yamlConfig.setSqlmappath(SqlmapConfig.getSqlmapPath());
         yamlConfig.setSqlmapoptions(SqlmapConfig.getSqlmapOptionsCommand());
@@ -724,7 +724,7 @@ public class DetSqlUI implements LanguageChangeListener {
             }.execute();
         });
 
-        // SqlMap 扫描漏洞参数
+        // sqlmap 扫描漏洞参数
         sqlmapScan.addActionListener(e -> {
             int[] selectedRows = table.getSelectedRows();
             if (selectedRows == null || selectedRows.length != 1) {
@@ -776,7 +776,7 @@ public class DetSqlUI implements LanguageChangeListener {
                         throw new Exception(Messages.getString("sqlmap.no_vuln_params"));
                     }
 
-                    // 启动 SqlMap 扫描
+                    // 启动 sqlmap 扫描
                     SqlmapScanHelper.scanParameters(logger, request, vulnParams);
                     return null;
                 }
@@ -835,14 +835,14 @@ public class DetSqlUI implements LanguageChangeListener {
 
     /**
      * 设置 table2 (POC 表) 的右键菜单
-     * 支持多选参数进行 SqlMap 扫描
+     * 支持多选参数进行 sqlmap 扫描
      */
     private void setupTable2ContextMenu(JTable table, PocTableModel tableModel) {
         final JPopupMenu popupMenu = new JPopupMenu();
         JMenuItem sqlmapScan = new JMenuItem(Messages.getString("menu.sqlmap_scan_selected"));
         popupMenu.add(sqlmapScan);
 
-        // SqlMap 扫描选中参数
+        // sqlmap 扫描选中参数
         sqlmapScan.addActionListener(e -> {
             int[] selectedRows = table.getSelectedRows();
             if (selectedRows == null || selectedRows.length == 0) {
@@ -892,7 +892,7 @@ public class DetSqlUI implements LanguageChangeListener {
                         throw new Exception(Messages.getString("sqlmap.request_unavailable"));
                     }
 
-                    // 启动 SqlMap 扫描
+                    // 启动 sqlmap 扫描
                     SqlmapScanHelper.scanParameters(logger, request, paramNames);
                     return null;
                 }

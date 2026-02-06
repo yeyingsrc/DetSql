@@ -14,8 +14,8 @@ import java.util.Properties;
 import java.util.function.Consumer;
 
 /**
- * SqlMap 工具类
- * 提供跨平台的 SqlMap 调用支持
+ * sqlmap 工具类
+ * 提供跨平台的 sqlmap 调用支持
  */
 public class SqlmapUtils {
     public static final int OS_WIN = 1;
