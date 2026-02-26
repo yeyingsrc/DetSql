@@ -4,6 +4,7 @@ import DetSql.config.ConfigManager;
 import DetSql.config.DefaultConfig;
 import DetSql.config.DetSqlConfig;
 import DetSql.config.DetSqlYamlConfig;
+import DetSql.config.SqlmapConfig;
 import DetSql.logging.DetSqlLogger;
 import DetSql.logging.LogLevel;
 import DetSql.ui.Messages;
@@ -30,11 +31,19 @@ public class ConfigPanel extends JPanel {
     public JTextField suffixTextField;
     public JTextField errorPocTextField;
     public JTextField blackParamsField;
+    public JTextField whiteParamsField;
     public JTextField configTextField;
     public JTextField timeTextField;
     public JTextField staticTimeTextField;
     public JTextField startTimeTextField;
     public JTextField endTimeTextField;
+    public JTextField sqlmapCommandLineTextField;  // 统一的SQLMap命令行文本框
+    public JButton sqlmapMoreButton;  // "更多"按钮
+
+    // SQLMap配置弹窗中的临时值
+    private String pythonName = "python";
+    private String sqlmapPath = "sqlmap.py";
+    private String sqlmapOptions = "-o --random-agent --time-sec=3 --risk=3 --level=5 --current-db --tamper=space2comment --batch";
 
     public JTextArea diyTextArea;
     public JTextArea regexTextArea;
@@ -93,6 +102,7 @@ public class ConfigPanel extends JPanel {
         JLabel suffixLabel = new JLabel();
         JLabel errorPocLabel = new JLabel();
         JLabel blackParamsLabel = new JLabel();
+        JLabel whiteParamsLabel = new JLabel();
         JLabel configLabel = new JLabel();
         JLabel blackPathLabel = new JLabel();
         JLabel diyLabel = new JLabel();
@@ -101,6 +111,7 @@ public class ConfigPanel extends JPanel {
         JLabel staticTimeLabel = new JLabel();
         JLabel startTimeLabel = new JLabel();
         JLabel languageLabel = new JLabel();
+        JLabel sqlmapCommandLineLabel = new JLabel();  // 统一的SQLMap命令行标签
         JButton conBt = new JButton();
         JButton loadBt = new JButton();
         JButton saveBt = new JButton();
@@ -113,7 +124,8 @@ public class ConfigPanel extends JPanel {
 
         // 设置 UI 各部分
         setupDomainFilters(container, springLayout, topicLabel, blackLabel, suffixLabel,
-                errorPocLabel, blackParamsLabel, st, st2);
+                errorPocLabel, blackParamsLabel, whiteParamsLabel, st, st2);
+        setupSqlmapConfig(container, springLayout, sqlmapCommandLineLabel, blackParamsLabel, st, st2);
         setupCheckboxes(container, springLayout, conBt, st, st2);
         setupConfigPath(container, springLayout, configLabel, loadBt, saveBt, blackLabel, st, st3, st4);
         JScrollPane blackPathScrollPane = setupBlackPath(container, springLayout, blackPathLabel,
@@ -129,22 +141,35 @@ public class ConfigPanel extends JPanel {
         loadBt.addActionListener(e -> handleLoadButton());
         saveBt.addActionListener(e -> handleSaveButton());
         languageComboBox.addActionListener(e -> handleLanguageChange(topicLabel, blackLabel, suffixLabel,
-                errorPocLabel, blackParamsLabel, diyLabel,
+                errorPocLabel, blackParamsLabel, whiteParamsLabel, diyLabel,
                 resRegexLabel, timeLabel, staticTimeLabel,
                 startTimeLabel, blackPathLabel, conBt,
-                loadBt, saveBt, languageLabel, configLabel));
+                loadBt, saveBt, languageLabel, configLabel,
+                sqlmapCommandLineLabel));
 
         // 更新所有标签
         updateLanguageLabels(topicLabel, blackLabel, suffixLabel, errorPocLabel, blackParamsLabel,
-                diyLabel, resRegexLabel, timeLabel, staticTimeLabel, startTimeLabel,
-                blackPathLabel, conBt, loadBt, saveBt, languageLabel, configLabel);
+                whiteParamsLabel, diyLabel, resRegexLabel, timeLabel, staticTimeLabel, startTimeLabel,
+                blackPathLabel, conBt, loadBt, saveBt, languageLabel, configLabel,
+                sqlmapCommandLineLabel);
 
-        add(new JScrollPane(container), BorderLayout.CENTER);
+        // 设置容器的底部约束，确保 SpringLayout 能正确计算首选大小
+        springLayout.putConstraint(SpringLayout.SOUTH, container, PADDING_LARGE, SpringLayout.SOUTH, languageComboBox);
+
+        // 设置容器的首选大小，确保滚动面板正常工作
+        ((JPanel) container).setPreferredSize(new java.awt.Dimension(800, 1200));
+
+        // 创建滚动面板并设置滚动策略
+        JScrollPane scrollPane = new JScrollPane(container);
+        scrollPane.setVerticalScrollBarPolicy(JScrollPane.VERTICAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.setHorizontalScrollBarPolicy(JScrollPane.HORIZONTAL_SCROLLBAR_AS_NEEDED);
+        scrollPane.getVerticalScrollBar().setUnitIncrement(16);
+        add(scrollPane, BorderLayout.CENTER);
     }
 
     private void setupDomainFilters(Container container, SpringLayout layout,
             JLabel topicLabel, JLabel blackLabel, JLabel suffixLabel,
-            JLabel errorPocLabel, JLabel blackParamsLabel,
+            JLabel errorPocLabel, JLabel blackParamsLabel, JLabel whiteParamsLabel,
             Spring st, Spring st2) {
         // 创建文本框
         textField = new JTextField(TEXTFIELD_COLUMNS);
@@ -153,6 +178,7 @@ public class ConfigPanel extends JPanel {
         suffixTextField.setText(DefaultConfig.DEFAULT_SUFFIX_LIST);
         errorPocTextField = new JTextField(TEXTFIELD_COLUMNS);
         blackParamsField = new JTextField(TEXTFIELD_COLUMNS);
+        whiteParamsField = new JTextField(TEXTFIELD_COLUMNS);
 
         // 域名白名单
         container.add(topicLabel);
@@ -194,10 +220,20 @@ public class ConfigPanel extends JPanel {
         layout.putConstraint(SpringLayout.NORTH, errorPocTextField, 0, SpringLayout.NORTH, errorPocLabel);
         layout.putConstraint(SpringLayout.EAST, errorPocTextField, Spring.minus(st), SpringLayout.EAST, container);
 
-        // 参数黑名单
+        // 参数白名单（放在参数黑名单上方）
+        container.add(whiteParamsLabel);
+        layout.putConstraint(SpringLayout.WEST, whiteParamsLabel, 0, SpringLayout.WEST, errorPocLabel);
+        layout.putConstraint(SpringLayout.NORTH, whiteParamsLabel, st, SpringLayout.SOUTH, errorPocLabel);
+
+        container.add(whiteParamsField);
+        layout.putConstraint(SpringLayout.WEST, whiteParamsField, 0, SpringLayout.WEST, textField);
+        layout.putConstraint(SpringLayout.NORTH, whiteParamsField, 0, SpringLayout.NORTH, whiteParamsLabel);
+        layout.putConstraint(SpringLayout.EAST, whiteParamsField, Spring.minus(st), SpringLayout.EAST, container);
+
+        // 参数黑名单（放在参数白名单下方）
         container.add(blackParamsLabel);
-        layout.putConstraint(SpringLayout.WEST, blackParamsLabel, 0, SpringLayout.WEST, errorPocLabel);
-        layout.putConstraint(SpringLayout.NORTH, blackParamsLabel, st, SpringLayout.SOUTH, errorPocLabel);
+        layout.putConstraint(SpringLayout.WEST, blackParamsLabel, 0, SpringLayout.WEST, whiteParamsLabel);
+        layout.putConstraint(SpringLayout.NORTH, blackParamsLabel, st, SpringLayout.SOUTH, whiteParamsLabel);
 
         container.add(blackParamsField);
         layout.putConstraint(SpringLayout.WEST, blackParamsField, 0, SpringLayout.WEST, textField);
@@ -218,10 +254,10 @@ public class ConfigPanel extends JPanel {
         boolCheck = new JCheckBox();
         diyCheck = new JCheckBox();
 
-        // 水平排列复选框
+        // 水平排列复选框 - 位于 sqlmap 命令行下方
         container.add(switchCheck);
-        layout.putConstraint(SpringLayout.WEST, switchCheck, 0, SpringLayout.WEST, blackParamsField);
-        layout.putConstraint(SpringLayout.NORTH, switchCheck, st, SpringLayout.SOUTH, blackParamsField);
+        layout.putConstraint(SpringLayout.WEST, switchCheck, 0, SpringLayout.WEST, textField);
+        layout.putConstraint(SpringLayout.NORTH, switchCheck, st, SpringLayout.SOUTH, sqlmapCommandLineTextField);
 
         container.add(cookieCheck);
         layout.putConstraint(SpringLayout.WEST, cookieCheck, st2, SpringLayout.EAST, switchCheck);
@@ -399,6 +435,8 @@ public class ConfigPanel extends JPanel {
         // 创建语言下拉框
         languageComboBox = new JComboBox<>(LANGUAGES);
         languageComboBox.setSelectedIndex(languageIndex);
+        languageComboBox.setMaximumSize(new Dimension(100, 25));
+        languageComboBox.setPreferredSize(new Dimension(100, 25));
 
         container.add(languageLabel);
         layout.putConstraint(SpringLayout.NORTH, languageLabel, st, SpringLayout.SOUTH, diyScrollPane);
@@ -410,19 +448,173 @@ public class ConfigPanel extends JPanel {
     }
 
     /**
+     * 设置 sqlmap 配置（统一的命令行组件）
+     * 位于参数黑名单下方
+     */
+    private void setupSqlmapConfig(Container container, SpringLayout layout,
+            JLabel sqlmapCommandLineLabel, JLabel blackParamsLabel, Spring st, Spring st2) {
+        // 初始化SQLMap配置值
+        pythonName = SqlmapConfig.getPythonName();
+        sqlmapPath = SqlmapConfig.getSqlmapPath();
+        sqlmapOptions = SqlmapConfig.getSqlmapOptionsCommand();
+
+        // 创建统一的 sqlmap 命令行文本框
+        sqlmapCommandLineTextField = new JTextField(TEXTFIELD_COLUMNS + 20);
+        updateSqlmapCommandLineTextField();
+        sqlmapCommandLineTextField.setMaximumSize(new Dimension(sqlmapCommandLineTextField.getPreferredSize().width, 25));
+
+        // 创建"更多"按钮
+        sqlmapMoreButton = new JButton(messages.getString("button.more"));
+        sqlmapMoreButton.addActionListener(e -> showSqlmapConfigDialog());
+
+        // sqlmap 命令行标签 - 位于参数黑名单下方
+        container.add(sqlmapCommandLineLabel);
+        layout.putConstraint(SpringLayout.NORTH, sqlmapCommandLineLabel, st, SpringLayout.SOUTH, blackParamsLabel);
+        layout.putConstraint(SpringLayout.WEST, sqlmapCommandLineLabel, 0, SpringLayout.WEST, blackParamsLabel);
+
+        // sqlmap 命令行文本框
+        container.add(sqlmapCommandLineTextField);
+        layout.putConstraint(SpringLayout.WEST, sqlmapCommandLineTextField, 0, SpringLayout.WEST, textField);
+        layout.putConstraint(SpringLayout.NORTH, sqlmapCommandLineTextField, 0, SpringLayout.NORTH, sqlmapCommandLineLabel);
+        layout.putConstraint(SpringLayout.EAST, sqlmapCommandLineTextField, -80, SpringLayout.EAST, container);
+
+        // "更多"按钮
+        container.add(sqlmapMoreButton);
+        layout.putConstraint(SpringLayout.WEST, sqlmapMoreButton, st, SpringLayout.EAST, sqlmapCommandLineTextField);
+        layout.putConstraint(SpringLayout.NORTH, sqlmapMoreButton, 0, SpringLayout.NORTH, sqlmapCommandLineTextField);
+        layout.putConstraint(SpringLayout.EAST, sqlmapMoreButton, Spring.minus(st), SpringLayout.EAST, container);
+    }
+
+    /**
+     * 更新SQLMap命令行文本框的内容
+     */
+    private void updateSqlmapCommandLineTextField() {
+        String commandLine = pythonName + " " + sqlmapPath + " " + sqlmapOptions;
+        sqlmapCommandLineTextField.setText(commandLine);
+    }
+
+    /**
+     * 显示SQLMap配置弹窗对话框
+     */
+    private void showSqlmapConfigDialog() {
+        // 创建对话框
+        JDialog dialog = new JDialog((Frame) SwingUtilities.getWindowAncestor(this),
+                messages.getString("sqlmap.dialog.title"), true);
+        dialog.setLayout(new BorderLayout());
+        dialog.setSize(500, 200);
+        dialog.setLocationRelativeTo(this);
+
+        // 创建主面板
+        JPanel mainPanel = new JPanel(new GridBagLayout());
+        mainPanel.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10));
+        GridBagConstraints gbc = new GridBagConstraints();
+        gbc.insets = new Insets(5, 5, 5, 5);
+        gbc.fill = GridBagConstraints.HORIZONTAL;
+
+        // Python name 行
+        gbc.gridx = 0; gbc.gridy = 0; gbc.weightx = 0;
+        JLabel pythonLabel = new JLabel(messages.getString("sqlmap.python_name"));
+        mainPanel.add(pythonLabel, gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1;
+        JTextField pythonField = new JTextField(pythonName, 30);
+        mainPanel.add(pythonField, gbc);
+
+        gbc.gridx = 2; gbc.weightx = 0;
+        JLabel pythonHelpLabel = new JLabel("?");
+        pythonHelpLabel.setToolTipText(messages.getString("sqlmap.python_help"));
+        mainPanel.add(pythonHelpLabel, gbc);
+
+        // sqlmap path 行
+        gbc.gridx = 0; gbc.gridy = 1; gbc.weightx = 0;
+        JLabel sqlmapPathLabel = new JLabel(messages.getString("sqlmap.sqlmap_path"));
+        mainPanel.add(sqlmapPathLabel, gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1;
+        JTextField sqlmapPathField = new JTextField(sqlmapPath, 30);
+        mainPanel.add(sqlmapPathField, gbc);
+
+        gbc.gridx = 2; gbc.weightx = 0;
+        JButton browseButton = new JButton(messages.getString("button.browse"));
+        browseButton.addActionListener(e -> {
+            JFileChooser fileChooser = new JFileChooser();
+            fileChooser.setDialogTitle(messages.getString("sqlmap.select_path"));
+            fileChooser.setFileSelectionMode(JFileChooser.FILES_ONLY);
+            String currentPath = sqlmapPathField.getText();
+            if (!currentPath.isBlank()) {
+                java.io.File currentFile = new java.io.File(currentPath);
+                if (currentFile.exists()) {
+                    fileChooser.setCurrentDirectory(currentFile.getParentFile());
+                }
+            }
+            int result = fileChooser.showOpenDialog(dialog);
+            if (result == JFileChooser.APPROVE_OPTION) {
+                sqlmapPathField.setText(fileChooser.getSelectedFile().getAbsolutePath());
+            }
+        });
+        mainPanel.add(browseButton, gbc);
+
+        // sqlmap option 行
+        gbc.gridx = 0; gbc.gridy = 2; gbc.weightx = 0;
+        JLabel optionLabel = new JLabel(messages.getString("sqlmap.sqlmap_option"));
+        mainPanel.add(optionLabel, gbc);
+
+        gbc.gridx = 1; gbc.weightx = 1;
+        JTextField optionField = new JTextField(sqlmapOptions, 30);
+        mainPanel.add(optionField, gbc);
+
+        gbc.gridx = 2; gbc.weightx = 0;
+        JLabel optionHelpLabel = new JLabel("?");
+        optionHelpLabel.setToolTipText(messages.getString("sqlmap.option_help"));
+        mainPanel.add(optionHelpLabel, gbc);
+
+        // 按钮面板
+        JPanel buttonPanel = new JPanel(new FlowLayout(FlowLayout.LEFT));
+        JButton okButton = new JButton(messages.getString("button.ok"));
+        JButton cancelButton = new JButton(messages.getString("button.cancel"));
+
+        okButton.addActionListener(e -> {
+            // 更新配置值
+            pythonName = pythonField.getText().trim();
+            sqlmapPath = sqlmapPathField.getText().trim();
+            sqlmapOptions = optionField.getText().trim();
+
+            // 更新命令行文本框
+            updateSqlmapCommandLineTextField();
+
+            // 同步到SqlmapConfig
+            SqlmapConfig.setPythonName(pythonName);
+            SqlmapConfig.setSqlmapPath(sqlmapPath);
+            SqlmapConfig.setSqlmapOptionsCommand(sqlmapOptions);
+
+            dialog.dispose();
+        });
+
+        cancelButton.addActionListener(e -> dialog.dispose());
+
+        buttonPanel.add(okButton);
+        buttonPanel.add(cancelButton);
+
+        dialog.add(mainPanel, BorderLayout.CENTER);
+        dialog.add(buttonPanel, BorderLayout.SOUTH);
+        dialog.setVisible(true);
+    }
+
+    /**
      * 更新所有 UI 组件标签为当前语言
      */
     private void updateLanguageLabels(JLabel topicLabel, JLabel blackLabel, JLabel suffixLabel,
-            JLabel errorPocLabel, JLabel blackParams, JLabel diyLabel,
+            JLabel errorPocLabel, JLabel blackParams, JLabel whiteParams, JLabel diyLabel,
             JLabel resRegexLabel, JLabel timeLabel, JLabel staticTimeLabel,
             JLabel startTimeLabel, JLabel blackPathLabel, JButton conBt,
             JButton loadBt, JButton saveBt, JLabel languageLabel,
-            JLabel configLabel) {
+            JLabel configLabel, JLabel sqlmapCommandLineLabel) {
         topicLabel.setText(messages.getString("Domainwhitelisting"));
         blackLabel.setText(messages.getString("Domainblacklisting"));
         suffixLabel.setText(messages.getString("Prohibitsuffixing"));
         errorPocLabel.setText(messages.getString("ErrorTypePOCing"));
         blackParams.setText(messages.getString("Parameterblacklisting"));
+        whiteParams.setText(messages.getString("Parameterwhitelisting"));
         switchCheck.setText(messages.getString("checkbox.switch"));
         cookieCheck.setText(messages.getString("checkbox.Testcookies"));
         vulnCheck.setText(messages.getString("checkbox.Acceptrepeater"));
@@ -443,6 +635,10 @@ public class ConfigPanel extends JPanel {
         saveBt.setText(messages.getString("button.save"));
         languageLabel.setText(messages.getString("languageing"));
         configLabel.setText(messages.getString("configuredirectorying"));
+        sqlmapCommandLineLabel.setText(messages.getString("sqlmap.commandline"));
+        if (sqlmapMoreButton != null) {
+            sqlmapMoreButton.setText(messages.getString("button.more"));
+        }
     }
 
     /**
@@ -479,6 +675,17 @@ public class ConfigPanel extends JPanel {
             MyFilterRequest.blackParamsSet.clear();
             MyFilterRequest.resetDiagnosticFlags();
             api.logging().logToOutput("[DetSQL 配置更新] 参数黑名单已清空");
+        }
+
+        String whiteParamsList = whiteParamsField.getText();
+        if (!whiteParamsList.isBlank()) {
+            MyFilterRequest.whiteParamsSet = parseDelimitedString(whiteParamsList);
+            MyFilterRequest.resetDiagnosticFlags();
+            api.logging().logToOutput("[DetSQL 配置更新] 参数白名单已应用: " + MyFilterRequest.whiteParamsSet);
+        } else {
+            MyFilterRequest.whiteParamsSet.clear();
+            MyFilterRequest.resetDiagnosticFlags();
+            api.logging().logToOutput("[DetSQL 配置更新] 参数白名单已清空");
         }
 
         String unLegalExtension = suffixTextField.getText();
@@ -533,6 +740,12 @@ public class ConfigPanel extends JPanel {
             api.logging().logToOutput("[INFO] ℹ 路径黑名单已清空（所有路径将被检测）");
         }
 
+        // 应用 sqlmap 配置（从成员变量同步到SqlmapConfig）
+        SqlmapConfig.setPythonName(pythonName);
+        SqlmapConfig.setSqlmapPath(sqlmapPath);
+        SqlmapConfig.setSqlmapOptionsCommand(sqlmapOptions);
+        api.logging().logToOutput("[DetSQL 配置更新] sqlmap 命令行已应用: " + sqlmapCommandLineTextField.getText());
+
         logger.info("配置已应用到运行时");
     }
 
@@ -550,6 +763,7 @@ public class ConfigPanel extends JPanel {
             int whitelistCount = MyFilterRequest.whiteListSet.size();
             int blackPathCount = MyFilterRequest.blackPathSet.size();
             int blackParamsCount = MyFilterRequest.blackParamsSet.size();
+            int whiteParamsCount = MyFilterRequest.whiteParamsSet.size();
             int suffixCount = MyFilterRequest.unLegalExtensionSet.size();
 
             StringBuilder summary = new StringBuilder();
@@ -559,6 +773,7 @@ public class ConfigPanel extends JPanel {
             summary.append(String.format("域名黑名单: %d 个  %s\n", blacklistCount, blacklistCount > 0 ? "✓" : ""));
             summary.append(String.format("路径黑名单: %d 个  %s\n", blackPathCount, blackPathCount > 0 ? "✓" : ""));
             summary.append(String.format("参数黑名单: %d 个  %s\n", blackParamsCount, blackParamsCount > 0 ? "✓" : ""));
+            summary.append(String.format("参数白名单: %d 个  %s\n", whiteParamsCount, whiteParamsCount > 0 ? "✓" : ""));
             summary.append(String.format("禁止后缀: %d 个\n", suffixCount));
             summary.append("═══════════════════════════════\n");
             summary.append("\n💡 提示: 如需永久保存，请点击\"保存\"按钮");
@@ -592,12 +807,14 @@ public class ConfigPanel extends JPanel {
             api.logging().logToOutput("[INFO] 准备保存配置到文件...");
             api.logging().logToOutput("[INFO] 当前运行时配置状态:");
             api.logging().logToOutput("  ├─ 域名白名单: " + MyFilterRequest.whiteListSet.size() + " 个");
-            api.logging().logToOutput("  ├─ 域名黑名单: " + MyFilterRequest.blackListSet.size() + " 个" + 
+            api.logging().logToOutput("  ├─ 域名黑名单: " + MyFilterRequest.blackListSet.size() + " 个" +
                     (MyFilterRequest.blackListSet.isEmpty() ? "" : " " + MyFilterRequest.blackListSet));
             api.logging().logToOutput("  ├─ 路径黑名单: " + MyFilterRequest.blackPathSet.size() + " 个" +
                     (MyFilterRequest.blackPathSet.isEmpty() ? "" : " " + MyFilterRequest.blackPathSet));
             api.logging().logToOutput("  ├─ 参数黑名单: " + MyFilterRequest.blackParamsSet.size() + " 个" +
                     (MyFilterRequest.blackParamsSet.isEmpty() ? "" : " " + MyFilterRequest.blackParamsSet));
+            api.logging().logToOutput("  ├─ 参数白名单: " + MyFilterRequest.whiteParamsSet.size() + " 个" +
+                    (MyFilterRequest.whiteParamsSet.isEmpty() ? "" : " " + MyFilterRequest.whiteParamsSet));
             api.logging().logToOutput("  └─ 禁止后缀: " + MyFilterRequest.unLegalExtensionSet.size() + " 个");
 
             // 直接使用 DetSqlUI 的 buildYamlConfig 方法构建配置对象，确保与卸载时保存的逻辑完全一致
@@ -617,6 +834,7 @@ public class ConfigPanel extends JPanel {
             int whitelistCount = MyFilterRequest.whiteListSet.size();
             int blackPathCount = MyFilterRequest.blackPathSet.size();
             int blackParamsCount = MyFilterRequest.blackParamsSet.size();
+            int whiteParamsCount = MyFilterRequest.whiteParamsSet.size();
             int suffixCount = MyFilterRequest.unLegalExtensionSet.size();
 
             StringBuilder summary = new StringBuilder();
@@ -626,11 +844,12 @@ public class ConfigPanel extends JPanel {
             summary.append(String.format("域名黑名单: %d 个  %s\n", blacklistCount, blacklistCount > 0 ? "✓" : ""));
             summary.append(String.format("路径黑名单: %d 个  %s\n", blackPathCount, blackPathCount > 0 ? "✓" : ""));
             summary.append(String.format("参数黑名单: %d 个  %s\n", blackParamsCount, blackParamsCount > 0 ? "✓" : ""));
+            summary.append(String.format("参数白名单: %d 个  %s\n", whiteParamsCount, whiteParamsCount > 0 ? "✓" : ""));
             summary.append(String.format("禁止后缀: %d 个\n", suffixCount));
             summary.append("═══════════════════════════════\n");
 
             // 添加空配置警告
-            if (blacklistCount == 0 && whitelistCount == 0 && blackPathCount == 0 && blackParamsCount == 0) {
+            if (blacklistCount == 0 && whitelistCount == 0 && blackPathCount == 0 && blackParamsCount == 0 && whiteParamsCount == 0) {
                 summary.append("\n⚠️ 警告: 所有过滤规则均为空\n");
                 summary.append("这意味着所有请求都会被检测。\n");
                 summary.append("如果这不是您的预期，请检查输入框内容。\n");
@@ -651,6 +870,10 @@ public class ConfigPanel extends JPanel {
             if (blackParamsCount > 0 && blackParamsCount <= 5) {
                 summary.append("\n参数黑名单: ");
                 summary.append(String.join(", ", MyFilterRequest.blackParamsSet));
+            }
+            if (whiteParamsCount > 0 && whiteParamsCount <= 5) {
+                summary.append("\n参数白名单: ");
+                summary.append(String.join(", ", MyFilterRequest.whiteParamsSet));
             }
 
             // 使用更醒目的成功图标
@@ -742,11 +965,11 @@ public class ConfigPanel extends JPanel {
      * 使用全局 LanguageManager 通知所有监听器
      */
     private void handleLanguageChange(JLabel topicLabel, JLabel blackLabel, JLabel suffixLabel,
-            JLabel errorPocLabel, JLabel blackParamsLabel, JLabel diyLabel,
+            JLabel errorPocLabel, JLabel blackParamsLabel, JLabel whiteParamsLabel, JLabel diyLabel,
             JLabel resRegexLabel, JLabel timeLabel, JLabel staticTimeLabel,
             JLabel startTimeLabel, JLabel blackPathLabel, JButton conBt,
             JButton loadBt, JButton saveBt, JLabel languageLabel,
-            JLabel configLabel) {
+            JLabel configLabel, JLabel sqlmapCommandLineLabel) {
         int newLanguageIndex = languageComboBox.getSelectedIndex();
 
         // 使用全局 LanguageManager 通知所有监听器
@@ -759,8 +982,9 @@ public class ConfigPanel extends JPanel {
 
         // 更新 ConfigPanel 自身的 UI 组件
         updateLanguageLabels(topicLabel, blackLabel, suffixLabel, errorPocLabel, blackParamsLabel,
-                diyLabel, resRegexLabel, timeLabel, staticTimeLabel, startTimeLabel,
-                blackPathLabel, conBt, loadBt, saveBt, languageLabel, configLabel);
+                whiteParamsLabel, diyLabel, resRegexLabel, timeLabel, staticTimeLabel, startTimeLabel,
+                blackPathLabel, conBt, loadBt, saveBt, languageLabel, configLabel,
+                sqlmapCommandLineLabel);
     }
 
     /**
@@ -814,6 +1038,7 @@ public class ConfigPanel extends JPanel {
         MyFilterRequest.whiteListSet = parseSetProperty(prop, "whitelist", new HashSet<>());
         MyFilterRequest.blackListSet = parseSetProperty(prop, "blacklist", new HashSet<>());
         MyFilterRequest.blackParamsSet = parseSetProperty(prop, "paramslist", new HashSet<>());
+        MyFilterRequest.whiteParamsSet = parseSetProperty(prop, "whiteparamslist", new HashSet<>());
 
         // 重置诊断标志
         MyFilterRequest.resetDiagnosticFlags();
@@ -823,6 +1048,9 @@ public class ConfigPanel extends JPanel {
             api.logging().logToOutput("[DetSQL 配置加载] 域名黑名单: " + MyFilterRequest.blackListSet);
         } else {
             api.logging().logToOutput("[DetSQL 配置加载] 域名黑名单为空");
+        }
+        if (!MyFilterRequest.whiteParamsSet.isEmpty()) {
+            api.logging().logToOutput("[DetSQL 配置加载] 参数白名单: " + MyFilterRequest.whiteParamsSet);
         }
 
         String suffixProp = prop.getProperty("suffixlist", "").trim();
@@ -844,6 +1072,8 @@ public class ConfigPanel extends JPanel {
                 errorPocTextField.setText(prop.getProperty("errpoclist", ""));
             if (blackParamsField != null)
                 blackParamsField.setText(prop.getProperty("paramslist", ""));
+            if (whiteParamsField != null)
+                whiteParamsField.setText(prop.getProperty("whiteparamslist", ""));
             if (timeTextField != null)
                 timeTextField.setText(prop.getProperty("delaytime", ""));
             if (staticTimeTextField != null)
@@ -925,6 +1155,27 @@ public class ConfigPanel extends JPanel {
         if (languageIndexStr != null) {
             languageIndex = parseIntWithDefault(languageIndexStr, 0);
         }
+
+        // 应用 sqlmap 配置
+        String loadedPythonName = prop.getProperty("pythonname", "python");
+        String loadedSqlmapPath = prop.getProperty("sqlmappath", "sqlmap.py");
+        String loadedSqlmapOptions = prop.getProperty("sqlmapoptions", SqlmapConfig.getDefaultSqlmapOptions());
+
+        // 更新成员变量
+        pythonName = loadedPythonName;
+        sqlmapPath = loadedSqlmapPath;
+        sqlmapOptions = loadedSqlmapOptions;
+
+        // 同步到SqlmapConfig
+        SqlmapConfig.setPythonName(loadedPythonName);
+        SqlmapConfig.setSqlmapPath(loadedSqlmapPath);
+        SqlmapConfig.setSqlmapOptionsCommand(loadedSqlmapOptions);
+
+        javax.swing.SwingUtilities.invokeLater(() -> {
+            if (sqlmapCommandLineTextField != null) {
+                updateSqlmapCommandLineTextField();
+            }
+        });
     }
 
     /**
@@ -954,6 +1205,9 @@ public class ConfigPanel extends JPanel {
         prop.setProperty("diyregex", regexTextArea.getText());
         prop.setProperty("blackpath", blackPathTextArea.getText());
         prop.setProperty("languageindex", String.valueOf(languageIndex));
+        prop.setProperty("pythonname", pythonName);
+        prop.setProperty("sqlmappath", sqlmapPath);
+        prop.setProperty("sqlmapoptions", sqlmapOptions);
         return prop;
     }
 

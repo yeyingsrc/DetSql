@@ -14,11 +14,13 @@ import burp.api.montoya.utilities.DigestAlgorithm;
 import DetSql.config.ConfigManager;
 import DetSql.config.DetSqlConfig;
 import DetSql.config.DetSqlYamlConfig;
+import DetSql.config.SqlmapConfig;
 import DetSql.logging.DetSqlLogger;
 import DetSql.logging.LogLevel;
 import DetSql.ui.DetSqlUI;
 import DetSql.ui.Messages;
 import DetSql.ui.MyFilterRequest;
+import DetSql.util.SqlmapUtils;
 import DetSql.util.Statistics;
 
 import javax.swing.*;
@@ -107,9 +109,12 @@ public class DetSql implements BurpExtension, ContextMenuItemsProvider {
         JMenu jMenu2 = new JMenu("DetSql");
         JMenuItem menuItem2 = new JMenuItem(Messages.getString("menu.end_data"));
         JMenuItem menuItem3 = new JMenuItem(Messages.getString("menu.send_to_detsql"));
+        JMenuItem menuItemSqlmap = new JMenuItem(Messages.getString("menu.send_to_sqlmap"));
 
         listMenuItems.add(jMenu2);
         jMenu2.add(menuItem3);
+        jMenu2.add(menuItemSqlmap);
+        jMenu2.addSeparator();
         jMenu2.add(menuItem2);
 
         menuItem2.addActionListener(new ActionListener() {
@@ -241,6 +246,63 @@ public class DetSql implements BurpExtension, ContextMenuItemsProvider {
                 }
 
                 api.logging().logToOutput(logMessage.toString());
+            }
+        });
+
+        // sqlmap 菜单项事件处理
+        menuItemSqlmap.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                HttpRequestResponse selectHttpRequestResponse = getRequestResponse(event);
+                if (selectHttpRequestResponse == null) {
+                    api.logging().logToError("未选择任何请求");
+                    JOptionPane.showMessageDialog(null,
+                            Messages.getString("sqlmap.no_request"),
+                            "sqlmap", JOptionPane.WARNING_MESSAGE);
+                    return;
+                }
+
+                try {
+                    // 保存请求到临时文件
+                    byte[] requestBytes = selectHttpRequestResponse.request().toByteArray().getBytes();
+                    String tempFilePath = SqlmapUtils.saveRequestToTempFile(requestBytes, "sqlmap_request.txt");
+
+                    api.logging().logToOutput("[sqlmap] 请求已保存到: " + tempFilePath);
+
+                    // 构建 sqlmap 命令
+                    String command = SqlmapConfig.buildFullCommand();
+                    api.logging().logToOutput("[sqlmap] 执行命令: " + command);
+
+                    // 根据操作系统类型执行命令
+                    int osType = SqlmapUtils.getOSType();
+                    java.util.List<String> cmds = SqlmapUtils.buildPlatformCommands(command);
+
+                    if (cmds.isEmpty()) {
+                        api.logging().logToError("[sqlmap] 无法构建命令");
+                        JOptionPane.showMessageDialog(null,
+                                Messages.getString("sqlmap.command_failed"),
+                                "sqlmap", JOptionPane.ERROR_MESSAGE);
+                        return;
+                    }
+
+                    // 对于 Linux，如果终端启动失败，复制命令到剪贴板
+                    if (osType == SqlmapUtils.OS_LINUX) {
+                        SqlmapUtils.setSysClipboardText(command);
+                        api.logging().logToOutput("[sqlmap] 命令已复制到剪贴板");
+                    }
+
+                    // 执行命令
+                    ProcessBuilder processBuilder = new ProcessBuilder(cmds);
+                    processBuilder.start();
+
+                    api.logging().logToOutput("[sqlmap] 已启动 sqlmap");
+
+                } catch (Exception ex) {
+                    api.logging().logToError("[sqlmap] 执行失败: " + ex.getMessage());
+                    JOptionPane.showMessageDialog(null,
+                            Messages.getString("sqlmap.execution_failed") + ": " + ex.getMessage(),
+                            "sqlmap", JOptionPane.ERROR_MESSAGE);
+                }
             }
         });
 

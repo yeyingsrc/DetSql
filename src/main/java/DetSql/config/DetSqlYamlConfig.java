@@ -26,7 +26,10 @@ public class DetSqlYamlConfig {
     
     // 参数黑名单
     private List<String> paramslist = new ArrayList<>();
-    
+
+    // 参数白名单
+    private List<String> whiteparamslist = new ArrayList<>();
+
     // 路径黑名单（多行文本）
     private String blackpath = "";
     
@@ -74,9 +77,18 @@ public class DetSqlYamlConfig {
     
     // 测试自定义 Payload
     private boolean diycheck = false;
-    
+
     // 语言索引（0=中文，1=英文）
     private int languageindex = 0;
+
+    // Python 解释器名称
+    private String pythonname = "python";
+
+    // sqlmap 路径
+    private String sqlmappath = "sqlmap.py";
+
+    // sqlmap 命令参数
+    private String sqlmapoptions = "-o --random-agent --time-sec=3 --risk=3 --level=5 --current-db --tamper=space2comment --batch";
 
     // Getters and Setters
     public List<String> getWhitelist() {
@@ -117,6 +129,14 @@ public class DetSqlYamlConfig {
 
     public void setParamslist(List<String> paramslist) {
         this.paramslist = paramslist;
+    }
+
+    public List<String> getWhiteparamslist() {
+        return whiteparamslist;
+    }
+
+    public void setWhiteparamslist(List<String> whiteparamslist) {
+        this.whiteparamslist = whiteparamslist;
     }
 
     public String getBlackpath() {
@@ -255,6 +275,30 @@ public class DetSqlYamlConfig {
         this.languageindex = languageindex;
     }
 
+    public String getPythonname() {
+        return pythonname;
+    }
+
+    public void setPythonname(String pythonname) {
+        this.pythonname = pythonname;
+    }
+
+    public String getSqlmappath() {
+        return sqlmappath;
+    }
+
+    public void setSqlmappath(String sqlmappath) {
+        this.sqlmappath = sqlmappath;
+    }
+
+    public String getSqlmapoptions() {
+        return sqlmapoptions;
+    }
+
+    public void setSqlmapoptions(String sqlmapoptions) {
+        this.sqlmapoptions = sqlmapoptions;
+    }
+
     /**
      * 转换为 Properties 格式（兼容 UI 的旧配置逻辑）
      *
@@ -269,6 +313,7 @@ public class DetSqlYamlConfig {
         prop.setProperty("suffixlist", joinList(suffixlist));
         prop.setProperty("errpoclist", joinList(errpoclist));
         prop.setProperty("paramslist", joinList(paramslist));
+        prop.setProperty("whiteparamslist", joinList(whiteparamslist));
 
         // 多行文本字段直接使用（Properties 会处理换行符）
         prop.setProperty("blackpath", blackpath != null ? blackpath : "");
@@ -294,6 +339,11 @@ public class DetSqlYamlConfig {
 
         // 语言索引
         prop.setProperty("languageindex", String.valueOf(languageindex));
+
+        // sqlmap 配置
+        prop.setProperty("pythonname", pythonname != null ? pythonname : "python");
+        prop.setProperty("sqlmappath", sqlmappath != null ? sqlmappath : "sqlmap.py");
+        prop.setProperty("sqlmapoptions", sqlmapoptions != null ? sqlmapoptions : "");
 
         return prop;
     }

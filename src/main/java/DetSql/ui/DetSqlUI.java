@@ -29,12 +29,14 @@ import static burp.api.montoya.ui.editor.EditorOptions.READ_ONLY;
 import DetSql.config.DefaultConfig;
 import DetSql.config.DetSqlConfig;
 import DetSql.config.DetSqlYamlConfig;
+import DetSql.config.SqlmapConfig;
 import DetSql.core.MyHttpHandler;
 import DetSql.logging.DetSqlLogger;
 import DetSql.model.PocLogEntry;
 import DetSql.model.PocTableModel;
 import DetSql.model.SourceLogEntry;
 import DetSql.model.SourceTableModel;
+import DetSql.util.SqlmapScanHelper;
 import DetSql.util.Statistics;
 
 /**
@@ -177,6 +179,7 @@ public class DetSqlUI implements LanguageChangeListener {
         yamlConfig.setBlacklist(new ArrayList<>(MyFilterRequest.blackListSet));
         yamlConfig.setSuffixlist(new ArrayList<>(MyFilterRequest.unLegalExtensionSet));
         yamlConfig.setParamslist(new ArrayList<>(MyFilterRequest.blackParamsSet));
+        yamlConfig.setWhiteparamslist(new ArrayList<>(MyFilterRequest.whiteParamsSet));
 
         // 路径黑名单(多行文本)
         yamlConfig.setBlackpath(String.join("\n", MyFilterRequest.blackPathSet));
@@ -205,6 +208,11 @@ public class DetSqlUI implements LanguageChangeListener {
 
         // 语言配置
         yamlConfig.setLanguageindex(getLanguageIndex());
+
+        // sqlmap 配置
+        yamlConfig.setPythonname(SqlmapConfig.getPythonName());
+        yamlConfig.setSqlmappath(SqlmapConfig.getSqlmapPath());
+        yamlConfig.setSqlmapoptions(SqlmapConfig.getSqlmapOptionsCommand());
 
         return yamlConfig;
     }
@@ -437,6 +445,9 @@ public class DetSqlUI implements LanguageChangeListener {
         });
         table2.setRowSorter(sorter1);
 
+        // 添加 table2 右键菜单
+        setupTable2ContextMenu(table2, pocTableModel);
+
         // 设置根面板布局
         root.setLayout(new BorderLayout());
 
@@ -522,15 +533,18 @@ public class DetSqlUI implements LanguageChangeListener {
      */
     private void setupTable1ContextMenu(JTable table, SourceTableModel tableModel) {
         final JPopupMenu popupMenu = new JPopupMenu();
-        JMenuItem menuItem1 = new JMenuItem("delete selected rows");
-        JMenuItem menuItem2 = new JMenuItem("delete novuln history");
-        JMenuItem exportBurpLog = new JMenuItem("Export selected original requests (Burp log)");
-        JMenuItem copyParams = new JMenuItem("Copy vulnerable parameters from selected");
+        JMenuItem menuItem1 = new JMenuItem(Messages.getString("menu.delete_selected"));
+        JMenuItem menuItem2 = new JMenuItem(Messages.getString("menu.delete_novuln"));
+        JMenuItem exportBurpLog = new JMenuItem(Messages.getString("menu.export_burp_log"));
+        JMenuItem copyParams = new JMenuItem(Messages.getString("menu.copy_vuln_params"));
+        JMenuItem sqlmapScan = new JMenuItem(Messages.getString("menu.sqlmap_scan_vuln"));
         popupMenu.add(menuItem1);
         popupMenu.add(menuItem2);
         popupMenu.addSeparator();
         popupMenu.add(exportBurpLog);
         popupMenu.add(copyParams);
+        popupMenu.addSeparator();
+        popupMenu.add(sqlmapScan);
 
         // 删除选中行
         menuItem1.addActionListener(e -> {
@@ -710,14 +724,198 @@ public class DetSqlUI implements LanguageChangeListener {
             }.execute();
         });
 
+        // sqlmap 扫描漏洞参数
+        sqlmapScan.addActionListener(e -> {
+            int[] selectedRows = table.getSelectedRows();
+            if (selectedRows == null || selectedRows.length != 1) {
+                JOptionPane.showMessageDialog(null, Messages.getString("sqlmap.select_single_row"),
+                        Messages.getString("dialog.tip"), JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            new javax.swing.SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    int viewIndex = selectedRows[0];
+                    int modelIndex = table.convertRowIndexToModel(viewIndex);
+                    SourceLogEntry sourceEntry = tableModel.get(modelIndex);
+                    if (sourceEntry == null) {
+                        throw new Exception("无法获取请求数据");
+                    }
+
+                    // 获取原始请求
+                    HttpRequest request = sourceEntry.getRequest();
+                    if (request == null) {
+                        throw new Exception("请求数据不可用");
+                    }
+
+                    // 获取漏洞参数名
+                    String myHash = sourceEntry.getMyHash();
+                    if (myHash == null) {
+                        throw new Exception("无法获取请求哈希");
+                    }
+
+                    List<PocLogEntry> entries = myHttpHandler.attackMap.get(myHash);
+                    if (entries == null || entries.isEmpty()) {
+                        throw new Exception("未找到漏洞参数");
+                    }
+
+                    // 收集有漏洞的参数名
+                    Set<String> vulnParams = new HashSet<>();
+                    for (PocLogEntry pe : entries) {
+                        String name = pe.getName();
+                        String vulnState = pe.getVulnState();
+                        // 只收集有漏洞的参数
+                        if (name != null && !name.isEmpty() && vulnState != null && !vulnState.isEmpty()
+                                && !"UNKNOWN".equals(vulnState)) {
+                            vulnParams.add(name);
+                        }
+                    }
+
+                    if (vulnParams.isEmpty()) {
+                        throw new Exception(Messages.getString("sqlmap.no_vuln_params"));
+                    }
+
+                    // 启动 sqlmap 扫描
+                    SqlmapScanHelper.scanParameters(logger, request, vulnParams);
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(null,
+                                Messages.getString("sqlmap.scan_failed") + ": " + ex.getMessage(),
+                                Messages.getString("dialog.error"), JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }.execute();
+        });
+
         // 弹出菜单监听器
         popupMenu.addPopupMenuListener(new PopupMenuListener() {
             @Override
             public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
                 int selectedCount = table.getSelectedRowCount();
                 boolean hasSelection = selectedCount > 0;
+                boolean singleSelection = selectedCount == 1;
                 exportBurpLog.setEnabled(hasSelection);
                 copyParams.setEnabled(hasSelection);
+                sqlmapScan.setEnabled(singleSelection);
+            }
+
+            @Override
+            public void popupMenuWillBecomeInvisible(PopupMenuEvent e) {
+            }
+
+            @Override
+            public void popupMenuCanceled(PopupMenuEvent e) {
+            }
+        });
+
+        // 鼠标监听器
+        table.addMouseListener(new MouseAdapter() {
+            @Override
+            public void mouseReleased(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    popupMenu.show(table, e.getX(), e.getY());
+                }
+            }
+
+            @Override
+            public void mousePressed(MouseEvent e) {
+                if (e.isPopupTrigger()) {
+                    popupMenu.show(table, e.getX(), e.getY());
+                }
+            }
+        });
+    }
+
+    /**
+     * 设置 table2 (POC 表) 的右键菜单
+     * 支持多选参数进行 sqlmap 扫描
+     */
+    private void setupTable2ContextMenu(JTable table, PocTableModel tableModel) {
+        final JPopupMenu popupMenu = new JPopupMenu();
+        JMenuItem sqlmapScan = new JMenuItem(Messages.getString("menu.sqlmap_scan_selected"));
+        popupMenu.add(sqlmapScan);
+
+        // sqlmap 扫描选中参数
+        sqlmapScan.addActionListener(e -> {
+            int[] selectedRows = table.getSelectedRows();
+            if (selectedRows == null || selectedRows.length == 0) {
+                JOptionPane.showMessageDialog(null, Messages.getString("sqlmap.select_single_row"),
+                        Messages.getString("dialog.tip"), JOptionPane.WARNING_MESSAGE);
+                return;
+            }
+
+            new javax.swing.SwingWorker<Void, Void>() {
+                @Override
+                protected Void doInBackground() throws Exception {
+                    // 收集选中的参数名
+                    Set<String> paramNames = new HashSet<>();
+                    String myHash = null;
+
+                    for (int viewIndex : selectedRows) {
+                        int modelIndex = table.convertRowIndexToModel(viewIndex);
+                        PocLogEntry entry = tableModel.get(modelIndex);
+                        if (entry != null) {
+                            String name = entry.getName();
+                            if (name != null && !name.isEmpty()) {
+                                paramNames.add(name);
+                            }
+                            // 获取 myHash（所有选中行应该属于同一个请求）
+                            if (myHash == null && entry.getMyHash() != null) {
+                                myHash = entry.getMyHash();
+                            }
+                        }
+                    }
+
+                    if (paramNames.isEmpty()) {
+                        throw new Exception(Messages.getString("sqlmap.no_vuln_params"));
+                    }
+
+                    if (myHash == null) {
+                        throw new Exception(Messages.getString("sqlmap.cannot_find_request"));
+                    }
+
+                    // 通过 myHash 获取原始请求
+                    SourceLogEntry sourceEntry = sourceTableModel.findByHash(myHash);
+                    if (sourceEntry == null) {
+                        throw new Exception(Messages.getString("sqlmap.cannot_find_request"));
+                    }
+
+                    HttpRequest request = sourceEntry.getRequest();
+                    if (request == null) {
+                        throw new Exception(Messages.getString("sqlmap.request_unavailable"));
+                    }
+
+                    // 启动 sqlmap 扫描
+                    SqlmapScanHelper.scanParameters(logger, request, paramNames);
+                    return null;
+                }
+
+                @Override
+                protected void done() {
+                    try {
+                        get();
+                    } catch (Exception ex) {
+                        JOptionPane.showMessageDialog(null,
+                                Messages.getString("sqlmap.scan_failed") + ": " + ex.getMessage(),
+                                Messages.getString("dialog.error"), JOptionPane.ERROR_MESSAGE);
+                    }
+                }
+            }.execute();
+        });
+
+        // 弹出菜单监听器
+        popupMenu.addPopupMenuListener(new PopupMenuListener() {
+            @Override
+            public void popupMenuWillBecomeVisible(PopupMenuEvent e) {
+                int selectedCount = table.getSelectedRowCount();
+                sqlmapScan.setEnabled(selectedCount > 0);
             }
 
             @Override
@@ -811,6 +1009,7 @@ public class DetSqlUI implements LanguageChangeListener {
         MyFilterRequest.whiteListSet = new HashSet<>(yamlConfig.getWhitelist());
         MyFilterRequest.blackListSet = new HashSet<>(yamlConfig.getBlacklist());
         MyFilterRequest.blackParamsSet = new HashSet<>(yamlConfig.getParamslist());
+        MyFilterRequest.whiteParamsSet = new HashSet<>(yamlConfig.getWhiteparamslist());
 
         if (yamlConfig.getSuffixlist().isEmpty()) {
             MyFilterRequest.unLegalExtensionSet = new HashSet<>(DefaultConfig.DEFAULT_SUFFIX_SET);
@@ -833,6 +1032,8 @@ public class DetSqlUI implements LanguageChangeListener {
                 configPanel.errorPocTextField.setText(String.join("|", yamlConfig.getErrpoclist()));
             if (configPanel.blackParamsField != null)
                 configPanel.blackParamsField.setText(String.join("|", yamlConfig.getParamslist()));
+            if (configPanel.whiteParamsField != null)
+                configPanel.whiteParamsField.setText(String.join("|", yamlConfig.getWhiteparamslist()));
             if (configPanel.timeTextField != null)
                 configPanel.timeTextField.setText(String.valueOf(yamlConfig.getDelaytime()));
             if (configPanel.staticTimeTextField != null)
